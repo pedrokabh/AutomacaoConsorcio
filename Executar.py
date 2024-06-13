@@ -2,7 +2,7 @@
 # 1.0 Testes Realizados com Chrome Driver v 125.0.6422.141 - https://googlechromelabs.github.io/chrome-for-testing/#stable
 # 1.1 Testes Realizados com Selenium v 4.21.0
 #
-#   @Autor = Pedro Camara / GitHub: https://github.com/pedrokabh/ - Versão beta 1.0.0
+#   @Autor = Pedro Camara / GitHub: https://github.com/pedrokabh/ - Versão beta 1.0.2
 #
 # FALTA ESTRUTURAR UMA FORMA DE IDENTIFICAR AS 3 ULTIMAS DATAS DE ASSEMBLEIA PARA NÃO PRECISAR
 # INSERIR O NOME DAS COLUNAS NA MÃO E FICAR TROCANDO AS DATAS DAS ASSEMBLEIAS TODOS OS MESES.
@@ -37,17 +37,30 @@ try:
     # 1.1 #
 
     # 1.1.2 # CRIAÇÃO ARQUIVO COM DADOS DA ASSEMBLEIA.
-    lista_codigos = [codigo for codigo in df_todosGruposAtivos['Codigo'].tolist() if codigo != 0]
+    lista_codigos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
     df_assembleia = consorcio.generate_dataFrame_dadosAssembleia(lista_grupos=lista_codigos)
     df_assembleia.to_excel("df_assembleia.xlsx", index=False)
-    print("[Executar] Arquivo 'df_assembleia.xlsx' criado com sucesso.")
+    print("[Executar] Arquivo 'df_assembleia.xlsx' criado com sucesso.\n")
     # 1.1.2 #
 
     # 1.2 # MESCLANDO INFORMAÇÕES PARA CRIAR EXCEL #
-    df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Codigo", how="left")
-    colunas = ["TipoGrupo","Codigo", "Prazo", "Vagas", "TxAdm+FR", "CalcTxAdm", "CalcFR", "CalcTotal", "CartasCredito", "VolumeTotal", "A 05/24", "QtdCont 05/24", "MEL 05/24","A 04/24", "QtdCont 04/24", "MEL 04/24", "A 03/24", "QtdCont 03/24","MEL 03/24"]
+    df_mediaContemplacao = consorcio.extrair_MediaContemplacao(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
+    # 1.2 #
+
+    # 1.2 # MESCLANDO INFORMAÇÕES PARA CRIAR EXCEL #
+    # 1.2.1 # Adicionando informações de assembleia.
+    df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
+    df_excelFinal = pd.merge(df_excelFinal, df_mediaContemplacao, on="Grupo", how="left")
+    # 1.2.2 # Adicionando media.
+    df_excelFinal = df_excelFinal.drop(columns=["N° Assembleia M4", "N° Assembleia M3"])
+    colunas = [
+               "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
+               "Calculo Total", "CartasCredito", "Liquidez", "N° Assembleia M5", 
+               "Contemplados M5","Media Lance M5", "Menor Lance M5", 
+               "Contemplados M4","Media Lance M4", "Menor Lance M4", 
+               "Contemplados M3","Media Lance M3", "Menor Lance M3"
+            ]
     df_excelFinal = df_excelFinal[colunas]
-    df_excelFinal = df_excelFinal.drop(columns=["A 04/24", "A 03/24"])
     df_excelFinal.to_excel("TodosGruposAtivos.xlsx", index=False)
     print("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
     # 1.2 #
