@@ -11,12 +11,23 @@ try:
     # Importações padrões
     import time
     import os, sys
+    import datetime
 except Exception as err:
     print(f"[ConsorcioBB] FALHA AO CARREGAR IMPORTAÇÕES \n{err}")
     sys.exit(1)
 
 class ConsorcioBB:
-    def __init__(self, login, senha, endereçoChromeDriver):
+    def __init__(self, login, senha, endereco_chrome_driver, data_assembleia_mais_recente, data_assembleia_passada, data_assembleia_retrasada):
+        
+        # Variaveis Assembleia Mais Recente
+        self.data_assembleia_mais_recente = data_assembleia_mais_recente
+        self.sigla_assembleia_mais_recente = self.ReturnsMonthCode(data_assembleia_mais_recente)
+        # Variaveis Assembleia Passada
+        self.data_assembleia_passada = data_assembleia_passada
+        self.sigla_assembleia_passada = self.ReturnsMonthCode(data_assembleia_passada)
+        # Variaveis Assembleia Retrasada
+        self.data_assembleia_retrasada = data_assembleia_retrasada
+        self.sigla_assembleia_retrasada = self.ReturnsMonthCode(data_assembleia_retrasada)
 
         # 1.0 # VERIFICANDO VERSÃO SELENIUM
         os.system('cls')
@@ -26,19 +37,18 @@ class ConsorcioBB:
         # 1.1 # INICIANDO NAVEGADOR, FAZENDO LOGON E FECHANDO POUP-UP.
         self.login = login
         self.senha = senha
-        self.chrome_driver_path = endereçoChromeDriver
-        self.iniciar_navegador()
-        self.fazer_login()
-        self.fechar_popup()
+        self.chrome_driver_path = endereco_chrome_driver
+        self.browser, self.wait = self.StartBrowser()
+        self.Login()
+        self.ClosePoupUp()
         # 1.1 #
 
     # --- FUNÇÕES PARA GERAR GRUPOS ATIVOS --- #
-    def generate_dataFrame_gruposAtivos(self, sigla):
+    def ReturnsDataFrameWithActiveGroups(self, sigla):
         try:
-            grupos_ativos = []
+            # 1.0 # Entrando em Simulador/Contratação e selecionando a categoria.
             self.browser.execute_script("document.getElementById('ctl00_Conteudo_rptFormularios_ctl08_lnkFormulario').click();")
-            time.sleep(3)
-
+            self.wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="ctl00_Conteudo_cbxTipoGrupo"]')))
             if sigla == "IM240":
                 self.wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_Conteudo_cbxTipoGrupo"]/option[3]'))).click()
                 time.sleep(2)
@@ -51,36 +61,34 @@ class ConsorcioBB:
                 self.wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="ctl00_Conteudo_cbxTipoVenda"]/option[3]'))).click()
             else:
                 self.browser.execute_script(f"document.querySelector('#ctl00_Conteudo_cbxTipoGrupo option[value=\"{sigla}\"]').selected = true")
-            
             self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkProximo').click();")
-            cod = 1
-
+            #
+            
+            # 1.2 # Capturando dados e gerando Data Frame dos dados.
+            grupos_ativos = [] # df para guardar dicionário de dados.
+            cod = 1 # Variavel de controle para encontrar ultima página da tabela.
             while cod != 0:
-                time.sleep(2)
-                tabela = self.browser.find_element(By.XPATH, '//*[@id="ctl00_Conteudo_grdGruposDisponiveis"]')
+                tabela = self.wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="ctl00_Conteudo_grdGruposDisponiveis"]')))
                 linhas = tabela.find_elements(By.TAG_NAME, 'tr')
                 just_one_table = True
-
-                for linha in linhas:
+                for linha in linhas: # Verifica se tabela tem botão 'next' para assim saber que é uma unica página.
                     if linha.find_elements(By.XPATH, './/input[contains(@src, "next.png")]'):
                         just_one_table = False
-
-                for linha in linhas:
-                    if linha.find_elements(By.XPATH, './/input[contains(@src, "next.png")]'):
+                for linha in linhas: # Realiza a captura dos dados da tabela.
+                    if linha.find_elements(By.XPATH, './/input[contains(@src, "next.png")]'): # Se for a linha do botão 'Next' vai para proxima página de dados da tabela.
                         self.browser.execute_script("__doPostBack('ctl00$Conteudo$grdGruposDisponiveis','Page$Next')")
                         break 
-                    elif linha.find_elements(By.XPATH,'.//input[contains(@src, "back.png")]'):
+                    elif linha.find_elements(By.XPATH,'.//input[contains(@src, "back.png")]'): # Se achar somente o botão 'Back' é a última página da tabela.
                         cod = 0
                         break
-                    elif len(linha.find_elements(By.TAG_NAME, 'td')) > 3:
-                        celulas = linha.find_elements(By.TAG_NAME, 'td')  # Encontrar todas as células da linha
-
-                        codigo_grupo = celulas[0].text
-                        prazo = int(celulas[1].text)
-                        vagas = int(celulas[2].text)
-                        txAdm = float(celulas[4].text.replace(',', '.'))  # Converte string para float
-                        fReserv = float(celulas[5].text.replace(',', '.'))  # Converte string para float
-                        valorBem = float(celulas[7].text.replace('.', '').replace(',', '.'))  # Converte string para float
+                    elif len(linha.find_elements(By.TAG_NAME, 'td')) > 3: # Verifica se é a linha com dados para ser capturado.
+                        coluna = linha.find_elements(By.TAG_NAME, 'td')
+                        codigo_grupo = coluna[0].text
+                        prazo = int(coluna[1].text)
+                        vagas = int(coluna[2].text)
+                        txAdm = float(coluna[4].text.replace(',', '.'))  # Converte string para float
+                        fReserv = float(coluna[5].text.replace(',', '.'))  # Converte string para float
+                        valorBem = float(coluna[7].text.replace('.', '').replace(',', '.'))  # Converte string para float
 
                         # Calculando novas colunas
                         taxas = f"{txAdm:.2f}% + {fReserv:.2f}%"
@@ -89,7 +97,7 @@ class ConsorcioBB:
                         calcTotalMensal = f"{((txAdm + fReserv) / prazo):.3f}% A.M\n{((txAdm + fReserv) / prazo * 12):.3f}% A.A"
 
                         cartas_Grupo = {
-                            "Modalidade": self.traduzir_sigla(sigla),
+                            "Modalidade": self.AcronymTranslator(sigla),
                             "Grupo": int(codigo_grupo[2:]),  # Tirar 2 primeiros caracteres
                             "Prazo": prazo,
                             "Vagas": vagas,
@@ -100,20 +108,25 @@ class ConsorcioBB:
                             "CartasCredito": valorBem
                         }
                         grupos_ativos.append(cartas_Grupo)
-
-                
-                if just_one_table == True:
+                if just_one_table == True: # Se página não tem botão 'next', nem botão 'back' encerra a procura de dados na tabela.
                     cod = 0
-            
-            self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
-            df = pd.DataFrame(grupos_ativos)
+            #
+
+            # 1.3 # Criando Data Frame, Pegando somente a linha com menor valor de Carta de Crédito e retornando.
+            self.wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="ctl00_lnkHome"]'))).click() # Voltando para Menu.
+            df = pd.DataFrame(grupos_ativos) # Transformando dicionário em data frame.
+            del grupos_ativos
             df = df.loc[df.groupby(['Grupo', 'Prazo'])['CartasCredito'].idxmin()]
-            return df      
+            print(f"[ConsorcioBB] Data frame Grupos Ativos [{sigla}] extraído com sucesso. ")
+            return df
+            #
+        
         except Exception as err:
-            print(f"[ConsorcioBB] Falha no metodo generate_dataFrame_gruposAtivos. \n {err}")
+            print(f"[ConsorcioBB] Falha ReturnsDataFrameWithActiveGroups()\n {err}")
+            self.TakeBrowserScreenshot()
             sys.exit(1)
 
-    def traduzir_sigla(self, sigla):
+    def AcronymTranslator(self, sigla):
         dicionario_siglas = {
             "MO": "MOTO DEMAIS",
             "EE": "BENS MOVEIS",
@@ -126,145 +139,312 @@ class ConsorcioBB:
         return dicionario_siglas.get(sigla, "Sigla desconhecida")
     
     # --- FUNÇÕES PARA GERAR DADOS ASSEMBLEIAS --- #
-    def generate_dataFrame_dadosAssembleia(self, lista_grupos):
+
+    def ReturnsMonthCode(self, date_str):
+        # Converte a string de data para um objeto datetime
+        date_obj = datetime.datetime.strptime(date_str, "%d/%m/%Y")
+        # Extrai o número do mês
+        month_number = date_obj.month
+        # Formata a string 'M'
+        month_code = f'M{month_number}'
+        return month_code
+
+    def ReturnsDataFrameAssemblyData(self, lista_grupos):
         try:
-            time.sleep(3)
+            # 1.1 # Navegando até página 'Resultado de Assembleias'. 
             self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
             dados_grupos = []
+            #
 
+            # 1.2 # Capturando informações das últimas assembleias.
             for grupo in lista_grupos:
-
                 script = f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';"
-                self.browser.execute_script(script)
+                self.browser.execute_script(script) # Preenche input com código do grupo.
                 script = "document.getElementById('ctl00_Conteudo_lnkPesquisar').click();"
-                self.browser.execute_script(script)
-
+                self.browser.execute_script(script) # Clica no botão pesquisar.
                 script = "return document.getElementById('ctl00_Conteudo_lblVolumeTotal').textContent;"
-                liquidez = self.browser.execute_script(script)
-
-                # Definindo dados.
+                liquidez = self.browser.execute_script(script) # Pegando valor da 'Label' Volume Total.
+                # Definindo nome dos dados no dicionario / Nome colunas no xlsx.
                 dados_assembleias_grupo = {
                     "Grupo": int(grupo),
                     "Liquidez": liquidez,
-                    "N° Assembleia M5": None, "Contemplados M5": None,  "Menor Lance M5": None,
-                    "N° Assembleia M4": None, "Contemplados M4": None,  "Menor Lance M4": None,
-                    "N° Assembleia M3": None, "Contemplados M3": None,  "Menor Lance M3": None,
+                    f"N° Assembleia {self.sigla_assembleia_mais_recente}": None, f"Contemplados {self.sigla_assembleia_mais_recente}": None,  f"Menor Lance {self.sigla_assembleia_mais_recente}": None,
+                    f"N° Assembleia {self.sigla_assembleia_passada}": None, f"Contemplados {self.sigla_assembleia_passada}": None,  f"Menor Lance {self.sigla_assembleia_passada}": None,
+                    f"N° Assembleia {self.sigla_assembleia_retrasada}": None, f"Contemplados {self.sigla_assembleia_retrasada}": None,  f"Menor Lance {self.sigla_assembleia_retrasada}": None,
                 }
 
-                tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+                tabela = self.wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="ctl00_Conteudo_grdAssembleias"]')))
                 linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
-
                 for linha in linhas:
-                    celulas = linha.find_elements(By.TAG_NAME, 'td')
+                    coluna = linha.find_elements(By.TAG_NAME, 'td')
+                    assembleia = coluna[1].text
+                    data = coluna[2].text
+                    qtde_contemp = coluna[3].text
+                    menor_lance = coluna[5].text
 
-                    assembleia = celulas[1].text
-                    data = celulas[2].text
-                    qtde_contemp = celulas[3].text
-                    menor_lance = celulas[5].text
-
-                    if data == '27/05/2024':
-                        dados_assembleias_grupo["N° Assembleia M5"] = assembleia
-                        dados_assembleias_grupo["Contemplados M5"] = qtde_contemp
-                        dados_assembleias_grupo["Menor Lance M5"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
-                    elif data == '25/04/2024':
-                        dados_assembleias_grupo["N° Assembleia M4"] = assembleia
-                        dados_assembleias_grupo["Contemplados M4"] = qtde_contemp
-                        dados_assembleias_grupo["Menor Lance M4"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
-                    elif data == '25/03/2024':
-                        dados_assembleias_grupo["N° Assembleia M3"] = assembleia
-                        dados_assembleias_grupo["Contemplados M3"] = qtde_contemp
-                        dados_assembleias_grupo["Menor Lance M3"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
-                
+                    # Verificando de qual assembleia são os dados da linha correspondente.
+                    if data == self.data_assembleia_mais_recente:
+                        dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_mais_recente}"] = assembleia
+                        dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_mais_recente}"] = qtde_contemp
+                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_mais_recente}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                    elif data == self.data_assembleia_passada:
+                        dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_passada}"] = assembleia
+                        dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_passada}"] = qtde_contemp
+                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_passada}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                    elif data == self.data_assembleia_retrasada:
+                        dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_retrasada}"] = assembleia
+                        dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_retrasada}"] = qtde_contemp
+                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_retrasada}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                    #
                 dados_grupos.append(dados_assembleias_grupo)
 
-            self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
+            self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click() # Voltando para menu Portal Parceiros.
             df = pd.DataFrame(dados_grupos)
+            print("[ConsorcioBB] Dados das Assembleias Extraídos com Sucesso.")
             return df
+        
         except Exception as err:
-            print(f"\n[ConsorcioBB] Falha no Metodo generate_dataFrame_dadosAssembleia.\n{err}")
+            print(f"\n[ConsorcioBB] Falha ReturnsDataFrameAssemblyData.\n{err}")
+            self.TakeBrowserScreenshot()
             sys.exit(1)
 
     # --- FUNÇÕES PARA CALCULAR MEDIA DE CONTEMPLAÇÃO DOS GRUPOS --- #
-    def extrair_MediaContemplacao(self, df_dadosAssembleia, lista_grupos):
-        try:
-            dados_grupos = [] # Adiciona todos os dados dos grupos.
-            for grupo in lista_grupos:
-                dados_assembleias_grupo = {
-                    "Grupo": int(grupo),
-                    "Media Lance M5": None,
-                    "Media Lance M4": None,
-                    "Media Lance M3": None
-                }
-                countLinhas = 0 # Conta quantas linhas tem na tabela de assembleias.
-                execution = 0 # Contabiliza qual linha processar.
+    # def extrair_MediaContemplacao(self, df_dadosAssembleia, lista_grupos):
+    #     try:
+    #         dados_grupos = [] # Adiciona todos os dados dos grupos.
+    #         for grupo in lista_grupos:
+    #             dados_assembleias_grupo = {
+    #                 "Grupo": int(grupo),
+    #                 "Media Lance M5": None,
+    #                 "Media Lance M4": None,
+    #                 "Media Lance M6": None
+    #             }
+    #             countLinhas = 0 # Conta quantas linhas tem na tabela de assembleias.
+    #             execution = 0 # Contabiliza qual linha processar.
                 
+    #             try:
+    #                 # Navega até assembleia.
+    #                 self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
+    #                 # Insere o grupo.
+    #                 self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
+    #                 # Pesquisa dados do grupo.
+    #                 self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
+                    
+    #                 # Acha a tabela.
+    #                 tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+                    
+    #                 # Contabiliza linhas pulando cabeçalho.
+    #                 linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+    #                 countLinhas = len(linhas) - 1
+    #                 execution = 0
+
+    #                 while execution <= countLinhas:
+    #                     # Volta no menu
+    #                     self.wait.until(EC.presence_of_element_located((By.ID, 'ctl00_lnkHome'))).click()
+    #                     # Entra na página da assembleia novamente
+    #                     self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
+    #                     # Insere o grupo.
+    #                     self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
+    #                     # Pesquisa dados do grupo.
+    #                     self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
+    #                     # Acha a tabela.
+    #                     tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+    #                     # Pega as linhas da tabela.
+    #                     linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+    #                     # Pega a linha desejada.
+    #                     linha = linhas[execution]
+
+    #                     # Pegando valores das colunas da linha e criando variavel de media.
+    #                     celulas = linha.find_elements(By.TAG_NAME, 'td')
+    #                     # NumeroAssembleia = celulas[1].text
+    #                     data = celulas[2].text
+    #                     # contemplados = celulas[3].text
+    #                     # menor_lance = celulas[5].text
+    #                     buton_CotasContempladas = celulas[6].find_element(By.TAG_NAME, 'input')
+    #                     media_lance = None
+                        
+    #                     # ABRINDO ABA DA ASSEMBLEIA PARA CALCULAR MEDIA LANCE
+    #                     buton_CotasContempladas.click()
+    #                     media_lance = self.dados_cotas_contemplados(grupo, df_dadosAssembleia)
+
+    #                     if data == '27/05/2024':
+    #                         dados_assembleias_grupo["Media Lance M5"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+    #                     elif data == '25/04/2024':
+    #                         dados_assembleias_grupo["Media Lance M4"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+    #                     elif data == '25/06/2024':
+    #                         dados_assembleias_grupo["Media Lance M6"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                        
+    #                     # Voltando para menu principal.
+    #                     self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
+    #                     execution += 1
+
+    #                 dados_grupos.append(dados_assembleias_grupo)
+    #             except Exception as err:
+    #                 print(f"[ConsorcioBB] Erro ao processar grupo {grupo}")
+    #                 self.wait.until(EC.presence_of_element_located((By.ID, 'ctl00_lnkHome'))).click()
+    #                 try:
+    #                     # Navega até assembleia.
+    #                     self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
+    #                     # Insere o grupo.
+    #                     self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
+    #                     # Pesquisa dados do grupo.
+    #                     self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
+                        
+    #                     # Acha a tabela.
+    #                     tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+                        
+    #                     # Contabiliza linhas pulando cabeçalho.
+    #                     linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+    #                     countLinhas = len(linhas) - 1
+    #                     execution = 0
+
+    #                     while execution <= countLinhas:
+    #                         # Volta no menu
+    #                         self.wait.until(EC.presence_of_element_located((By.ID, 'ctl00_lnkHome'))).click()
+    #                         # Entra na página da assembleia novamente
+    #                         self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
+    #                         # Insere o grupo.
+    #                         self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
+    #                         # Pesquisa dados do grupo.
+    #                         self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
+    #                         # Acha a tabela.
+    #                         tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+    #                         # Pega as linhas da tabela.
+    #                         linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+    #                         # Pega a linha desejada.
+    #                         linha = linhas[execution]
+
+    #                         # Pegando valores das colunas da linha e criando variavel de media.
+    #                         celulas = linha.find_elements(By.TAG_NAME, 'td')
+    #                         # NumeroAssembleia = celulas[1].text
+    #                         data = celulas[2].text
+    #                         # contemplados = celulas[3].text
+    #                         # menor_lance = celulas[5].text
+    #                         buton_CotasContempladas = celulas[6].find_element(By.TAG_NAME, 'input')
+    #                         media_lance = None
+                            
+    #                         # ABRINDO ABA DA ASSEMBLEIA PARA CALCULAR MEDIA LANCE
+    #                         buton_CotasContempladas.click()
+    #                         media_lance = self.dados_cotas_contemplados(grupo, df_dadosAssembleia)
+
+    #                         if data == '27/05/2024':
+    #                             dados_assembleias_grupo["Media Lance M5"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+    #                         elif data == '25/04/2024':
+    #                             dados_assembleias_grupo["Media Lance M4"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+    #                         elif data == '25/06/2024':
+    #                             dados_assembleias_grupo["Media Lance M6"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                            
+    #                         # Voltando para menu principal.
+    #                         self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
+    #                         execution += 1
+    #                     dados_grupos.append(dados_assembleias_grupo)
+    #                 except Exception as err:
+    #                     print(f"[ConsorcioBB] Erro novamente ao processar grupo {grupo}")
+    #                     continue
+
+    #                 dados_grupos.append(dados_assembleias_grupo)
+            
+    #         df = pd.DataFrame(dados_grupos)
+    #         self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
+    #         return df
+    #     except Exception as err:
+    #                 print(f"[ConsorcioBB] error\n{err}")
+
+    def ReturnsDataFrameGroupsMedia(self, df_dadosAssembleia, lista_grupos):
+        try:
+            dados_grupos = []  # Adiciona todos os dados dos grupos.
+
+            for grupo in lista_grupos:
                 try:
-                    # Navega até assembleia.
-                    self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
-                    # Insere o grupo.
-                    self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
-                    # Pesquisa dados do grupo.
-                    self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
-                    
-                    # Acha a tabela.
-                    tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
-                    
-                    # Contabiliza linhas pulando cabeçalho.
-                    linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
-                    countLinhas = len(linhas) - 1
-                    execution = 0
-
-                    while execution <= countLinhas:
-                        # Volta no menu
-                        self.wait.until(EC.presence_of_element_located((By.ID, 'ctl00_lnkHome'))).click()
-                        # Entra na página da assembleia novamente
-                        self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
-                        # Insere o grupo.
-                        self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
-                        # Pesquisa dados do grupo.
-                        self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
-                        # Acha a tabela.
-                        tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
-                        # Pega as linhas da tabela.
-                        linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
-                        # Pega a linha desejada.
-                        linha = linhas[execution]
-
-                        # Pegando valores das colunas da linha e criando variavel de media.
-                        celulas = linha.find_elements(By.TAG_NAME, 'td')
-                        # NumeroAssembleia = celulas[1].text
-                        data = celulas[2].text
-                        # contemplados = celulas[3].text
-                        # menor_lance = celulas[5].text
-                        buton_CotasContempladas = celulas[6].find_element(By.TAG_NAME, 'input')
-                        media_lance = None
-                        
-                        # ABRINDO ABA DA ASSEMBLEIA PARA CALCULAR MEDIA LANCE
-                        buton_CotasContempladas.click()
-                        media_lance = self.dados_cotas_contemplados(grupo, df_dadosAssembleia)
-
-                        if data == '27/05/2024':
-                            dados_assembleias_grupo["Media Lance M5"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
-                        elif data == '25/04/2024':
-                            dados_assembleias_grupo["Media Lance M4"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
-                        elif data == '25/03/2024':
-                            dados_assembleias_grupo["Media Lance M3"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
-                        
-                        # Voltando para menu principal.
-                        self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
-                        execution += 1
-
+                    # Chama o método de execução para processar o grupo
+                    dados_assembleias_grupo = self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia)
                     dados_grupos.append(dados_assembleias_grupo)
                 except Exception as err:
-                    print(f"[ConsorcioBB] error\n{err}")
-            
-            df = pd.DataFrame(dados_grupos)
-            self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click()
-            return df
-        except Exception as err:
-                    print(f"[ConsorcioBB] error\n{err}")
+                    print(f"[ConsorcioBB] Tentando novamente para o grupo {grupo} devido ao erro: {str(err)}")
+                    try:
+                        # Tenta executar novamente o método de execução para o grupo
+                        dados_assembleias_grupo = self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia)
+                        dados_grupos.append(dados_assembleias_grupo)
+                    except Exception as err:
+                        print(f"[ConsorcioBB] Erro novamente ao processar grupo {grupo}: {str(err)}")
+                        continue  # Ignora o grupo se falhar novamente
 
-    def dados_cotas_contemplados(self, grupo, df_dadosAssembleia):
+            df = pd.DataFrame(dados_grupos)
+            self.browser.find_element(By.XPATH, '//*[@id="ctl00_lnkHome"]').click()
+            print("[ConsorcioBB] Média contemplações extraídas com sucesso.")
+            return df
+
+        except Exception as err:
+            print(f"[ConsorcioBB] Erro geral: {str(err)}")
+
+    def ReturnAveragesAssemblies(self, grupo, df_dadosAssembleia):
+        dados_assembleias_grupo = {
+            "Grupo": int(grupo),
+            f"Media Lance {self.sigla_assembleia_mais_recente}": None,
+            f"Media Lance {self.sigla_assembleia_passada}": None,
+            f"Media Lance {self.sigla_assembleia_retrasada}": None
+        }
+        
+        try:
+            # Navega até assembleia.
+            self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
+            # Insere o grupo.
+            self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
+            # Pesquisa dados do grupo.
+            self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
+            
+            # Acha a tabela.
+            tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+            
+            # Contabiliza linhas pulando cabeçalho.
+            linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+            countLinhas = len(linhas) - 1
+            execution = 0
+
+            while execution <= countLinhas:
+                # Volta no menu
+                self.wait.until(EC.presence_of_element_located((By.ID, 'ctl00_lnkHome'))).click()
+                # Entra na página da assembleia novamente
+                self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
+                # Insere o grupo.
+                self.browser.execute_script(f"document.evaluate('//*[@id=\"ctl00_Conteudo_edtCD_Grupo\"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.value = '{str(grupo).zfill(6)}';")
+                # Pesquisa dados do grupo.
+                self.browser.execute_script("document.getElementById('ctl00_Conteudo_lnkPesquisar').click();")
+                # Acha a tabela.
+                tabela = self.browser.find_element(By.ID, 'ctl00_Conteudo_grdAssembleias')
+                # Pega as linhas da tabela.
+                linhas = tabela.find_elements(By.TAG_NAME, 'tr')[1:]
+                # Pega a linha desejada.
+                linha = linhas[execution]
+
+                # Pegando valores das colunas da linha e criando variavel de media.
+                celulas = linha.find_elements(By.TAG_NAME, 'td')
+                data = celulas[2].text
+                buton_CotasContempladas = celulas[6].find_element(By.TAG_NAME, 'input')
+                media_lance = None
+                
+                # ABRINDO ABA DA ASSEMBLEIA PARA CALCULAR MEDIA LANCE
+                buton_CotasContempladas.click()
+                media_lance = self.CalculateMediaAssembly(grupo, df_dadosAssembleia)
+
+                if data == self.data_assembleia_mais_recente:
+                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_mais_recente}"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                elif data == self.data_assembleia_passada:
+                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_passada}"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                elif data == self.data_assembleia_retrasada:
+                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_retrasada}"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                
+                # Voltando para menu principal.
+                self.browser.find_element(By.XPATH, '//*[@id="ctl00_lnkHome"]').click()
+                execution += 1
+
+        except Exception as err:
+            print(f"[ConsorcioBB] Erro ao processar grupo {grupo}: {str(err)}")
+            raise  # Relança a exceção para ser tratada no método principal
+
+        return dados_assembleias_grupo
+
+    def CalculateMediaAssembly(self, grupo, df_dadosAssembleia):
         try:
             # MÉTODO PARA CALCULAR MÉDIA DE LANCE DA ASSEMBLEIA.
             # CALCULAR PARA CADA ASSEMBLEIA OU SEJA PARA CADA LINHA DA TABELA.
@@ -308,19 +488,19 @@ class ConsorcioBB:
             # Obtenha os valores das colunas "MenorLance M5", "MenorLance M4" e "MenorLance M3" para o grupo correspondente
             dados_grupo = df_dadosAssembleia[df_dadosAssembleia['Grupo'] == grupo]
             if not dados_grupo.empty:
-                mel_05_24 = dados_grupo['Menor Lance M5'].values[0]
-                mel_04_24 = dados_grupo['Menor Lance M4'].values[0]
-                mel_03_24 = dados_grupo['Menor Lance M3'].values[0]
+                menor_lance_recente = dados_grupo[f'Menor Lance {self.sigla_assembleia_mais_recente}'].values[0]
+                menor_lance_passada = dados_grupo[f'Menor Lance {self.sigla_assembleia_passada}'].values[0]
+                menor_lance_retrasada = dados_grupo[f'Menor Lance {self.sigla_assembleia_retrasada}'].values[0]
 
                 for CotaContemplada in list_cotasContempladas:
 
                     percentual = CotaContemplada['Percentual']
                     if percentual == '0,0000': # Desconsidera sorteio.
                         continue
-                    elif percentual == "20,0000" and ( mel_05_24 == '20.00%' or None) and (mel_04_24 == '20.00%' or None) and (mel_03_24 == '20.00%' or None):
+                    elif percentual == "20,0000" and ( menor_lance_passada == '20.00%' or None) and (menor_lance_retrasada == '20.00%' or None) and (menor_lance_recente == '20.00%' or None):
                         # lanceFixo20 = True
                         continue
-                    elif percentual == "30,0000" and (mel_05_24 == '30.00%' or None) and (mel_04_24 == '30.00%' or None) and (mel_03_24 == '30.00%' or None):
+                    elif percentual == "30,0000" and (menor_lance_passada == '30.00%' or None) and (menor_lance_retrasada == '30.00%' or None) and (menor_lance_recente == '30.00%' or None):
                         # lanceFixo30 = True
                         continue
                     else:
@@ -334,20 +514,6 @@ class ConsorcioBB:
             else:
                 print(f"[WARINING] Não há valores válidos para calcular a média. Grupo {grupo}°")
                 return media_percentuais == 0
-            
-            # Debug.
-            # if lanceFixo20:
-            #     print(f"[ConsorcioBB] Grupo {grupo}° Lance Fixo 20%.")
-            #     print("Percentuais ->",pecentuais)
-            #     print("Contagem: ",contagem)
-            #     print("Media Lance: ", media_percentuais)
-            #     print()
-            # elif lanceFixo30:
-            #     print(f"[ConsorcioBB] Grupo {grupo}° Lance Fixo 30%.")
-            #     print("Percentuais ->",pecentuais)
-            #     print("Contagem: ",contagem)
-            #     print("Media Lance: ", media_percentuais)
-            #     print()
 
             self.browser.find_element(By.XPATH,"//*[@id='ctl00_Conteudo_lnkFechaDiv']").click()
             return media_percentuais
@@ -356,19 +522,20 @@ class ConsorcioBB:
             print(f"error\n{err}")
 
     # --- FUNÇÕES PADRÕES -- #
-    def iniciar_navegador(self):
+    def StartBrowser(self):
         try:
-            print("\n[ConsorcioBB] Iniciando Chrome...")
+            print("[ConsorcioBB] Iniciando Chrome...")
             chrome_service = Service(self.chrome_driver_path)
-            self.browser = webdriver.Chrome(service=chrome_service)
-            self.wait = WebDriverWait(self.browser, 10) 
+            browser = webdriver.Chrome(service=chrome_service)
+            wait = WebDriverWait(browser, 10)
+            return browser, wait
         except Exception as err:
-            print(f"\n[ConsorcioBB] Falha no método. iniciar_navegador.\n{err}")
+            print(f"\n[ConsorcioBB] Falha StartBrowser.\n{err}")
             sys.exit(1)
     
-    def fazer_login(self):
+    def Login(self):
         try:
-            print("\n[ConsorcioBB] Acessando URL (https://www.parceirosbbconsorcios.com.br).")
+            print("[ConsorcioBB] Acessando URL (https://www.parceirosbbconsorcios.com.br).")
             self.browser.get('https://www.parceirosbbconsorcios.com.br/')
             print("[ConsorcioBB] Efetuando login PP BB Consórcio.")
             self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_edtUsuario"]'))).send_keys(self.login)
@@ -376,26 +543,34 @@ class ConsorcioBB:
             self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_lnkEntrar"]'))).click()
             print("[ConsorcioBB] Logado com sucesso no PP BB Consórcio.")
         except Exception as err:
-            print(f"\n[ConsorcioBB] Falha no metodo fazer_login.\n{err}")
+            print(f"\n[ConsorcioBB] Falha Login.\n{err}")
             sys.exit(1)
     
-    def fechar_popup(self):
+    def ClosePoupUp(self):
         try:
             print('[ConsorcioBB] Fechando Poup-Up Inicial.')
             self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_LinkButton1"]'))).click()
             print("[ConsorcioBB] Poup-Up fechado.")
         except Exception as err:
-            print(f"\n[ConsorcioBB] Falha no metodo fechar_popUp.\n{err}")
+            print(f"\n[ConsorcioBB] Falha no metodo ClosePoupUp.\n{err}")
             sys.exit(1)
     
-    def encerrar_navegador(self):
+    def EndBrowser(self):
         try:
             # Encerra navegador.
             print("[ConsorcioBB] Encerrando Chrome.")
             self.browser.quit()
             sys.exit(0)
         except Exception as err:
-            print(f"\n[ConsorcioBB] Falha no método encerrar_navegador.\n{err}")
+            print(f"\n[ConsorcioBB] Falha no método EndBrowser.\n{err}")
             sys.exit(1)
 
-
+    def TakeBrowserScreenshot(self, file_path=".\\error.png"):
+        try:
+            # Tira a captura de tela e salva no caminho especificado
+            self.browser.save_screenshot(file_path)
+            print(f"[ERROR] Captura de tela do erro salva em [{file_path}]")
+            return True
+        except Exception as e:
+            print(f"[ConsrocioBB] Falha TakeBrowserScreenshot\n {str(e)}")
+            return False
