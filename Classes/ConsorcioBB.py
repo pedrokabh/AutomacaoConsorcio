@@ -184,7 +184,7 @@ class ConsorcioBB:
                     menor_lance = coluna[5].text
 
                     # Verificando de qual assembleia são os dados da linha correspondente.
-                    if data == self.data_assembleia_mais_recente:
+                    if data == self.data_assembleia_mais_recente or data == "28/06/2024": # Assembleia Extraordinaria
                         dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_mais_recente}"] = assembleia
                         dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_mais_recente}"] = qtde_contemp
                         dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_mais_recente}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
@@ -196,6 +196,7 @@ class ConsorcioBB:
                         dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_retrasada}"] = assembleia
                         dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_retrasada}"] = qtde_contemp
                         dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_retrasada}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                    
                     #
                 dados_grupos.append(dados_assembleias_grupo)
 

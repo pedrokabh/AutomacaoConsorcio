@@ -59,21 +59,31 @@ try:
         logger.info("[Executar] Arquivo 'df_dados_assembleia.xlsx' criado com sucesso.")
 
         # Mesclando informações para criar Excel
-        df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
-        df_mediaContemplacao.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_medias_assembleias.xlsx', index=False)
-        logger.info("[Executar] Arquivo 'df_medias_assembleias.xlsx' criado com sucesso.")
+        # df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
+        # df_mediaContemplacao.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_medias_assembleias.xlsx', index=False)
+        # logger.info("[Executar] Arquivo 'df_medias_assembleias.xlsx' criado com sucesso.")
 
         df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
-        df_excelFinal = pd.merge(df_excelFinal, df_mediaContemplacao, on="Grupo", how="left")
+        # df_excelFinal = pd.merge(df_excelFinal, df_mediaContemplacao, on="Grupo", how="left")
 
         # Adicionando colunas específicas
+        # COLUNA SEM MEDIA
         colunas = [
             "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
             "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
-            f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
-            f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
-            f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
+            f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
+            f"Contemplados {consorcio.sigla_assembleia_passada}",  f"Menor Lance {consorcio.sigla_assembleia_passada}",
+            f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
         ]
+
+        #COLUNA COM MEDIA
+        # colunas = [
+        #     "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
+        #     "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
+        #     f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
+        #     f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
+        #     f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
+        # ]
         df_excelFinal = df_excelFinal[colunas]
         df_excelFinal.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx', index=False)
         logger.info("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
