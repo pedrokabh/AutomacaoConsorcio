@@ -5,108 +5,161 @@ from datetime import datetime
 from ConsorcioBB import ConsorcioBB
 from Logger import Logger
 
-try:
-    os.system('cls')
-    # Diretório base do projeto
-    directory_mother = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# LENDO LOG COUNT.TXT
+with open(str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Classes\\execution_count.txt'), 'r') as arquivo:
+    conteudo = arquivo.read()
 
-    with open(str(directory_mother+'\\Classes\\execution_count.txt'), 'r') as arquivo:
-        conteudo = arquivo.read()
-    execution_code = int(conteudo)
+"""
+    !!! ATENÇÃO !!! - Caso seja outra assembleia, atualizar as colunas do mês.
+"""
+# !--- PARAMETROS DE EXECUÇÃO ---! #
+execution_code = int(conteudo)
+parte2 =True
+parte1 = True
+media_assembleia = True
+categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
+endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
+data_assembleia_mais_recente = "26/07/2024" # JULHO
+data_assembleia_passada = "25/06/2024" # JUNHO
+data_assembleia_retrasada = "27/05/2024" # MAIO
+login = input("Digite o seu login: ")
+senha = input("Digite a sua senha: ")
+# !--- PARAMETROS DE EXECUÇÃO ---! #
 
-    # Caminho para o arquivo de log
-    directory_mother = f'{directory_mother}\\Builds\\Build Number {execution_code}\\'
-    os.makedirs(os.path.dirname( str(directory_mother) ), exist_ok=True)
 
+"""
+    GERA ARQUIVO TODOSGRUPOSATIVOS.XLSX (DADOS DOS GRUPOS / MEDIA CONTEMPLAÇÃO / DADOS ASSEMBLEIAS)
+"""
+if parte1:
     try:
-        # Inicializando o Logger
-        logger = Logger(execution_code, write_log_directory=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log')
-        datetime_start_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        logger.info(f"[Executar] Iniciando execução [{execution_code}] datetime [{datetime_start_execution}]")
+        os.system('cls')
 
-        # Parâmetros de execução
-        categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
-        # categoria_processadas = ["TC"]
-        endereco_chrome_driver = r"C:\Users\pedro\OneDrive\Área de Trabalho\AUTOMAÇÕES ISF\chromedriver-win64\chromedriver.exe"
-        data_assembleia_mais_recente = "25/06/2024"
-        data_assembleia_passada = "27/05/2024"
-        data_assembleia_retrasada = "25/04/2024"
-        login = input("Digite o seu login: ")
-        senha = input("Digite a sua senha: ")
+        # DIRETORIO ARQUIVO LOG.
+        directory_mother = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))}\\Builds\\Build Number {execution_code}\\'
+        os.makedirs(os.path.dirname( str(directory_mother) ), exist_ok=True)
 
-        # Inicializando a classe ConsorcioBB
-        consorcio = ConsorcioBB(
-            login=login,
-            senha=senha,
-            endereco_chrome_driver=endereco_chrome_driver,
-            data_assembleia_mais_recente=data_assembleia_mais_recente,
-            data_assembleia_passada=data_assembleia_passada,
-            data_assembleia_retrasada=data_assembleia_retrasada,
-            logger=logger,
-            cwd=directory_mother
-        )
+        try:
+            # INICIALIZANDO LOG
+            logger = Logger(execution_code, write_log_directory=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log')
+            datetime_start_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logger.info(f"[Executar] Iniciando execução [{execution_code}] datetime [{datetime_start_execution}]")
 
-        # Criando arquivo com dados dos grupos ativos
-        df_gruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas]
-        df_todosGruposAtivos = pd.concat(df_gruposAtivos, ignore_index=True)
-        df_todosGruposAtivos.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_todosGruposAtivos.xlsx', index=False)
-        logger.info("[Executar] Arquivo 'df_todosGruposAtivos.xlsx' criado com sucesso.")
+            ## --- Execução --- ##
+            consorcio = ConsorcioBB(
+                login=login,
+                senha=senha,
+                endereco_chrome_driver=endereco_chrome_driver,
+                data_assembleia_mais_recente=data_assembleia_mais_recente,
+                data_assembleia_passada=data_assembleia_passada,
+                data_assembleia_retrasada=data_assembleia_retrasada,
+                logger=logger,
+                cwd=directory_mother
+            )
 
-        # Criando arquivo com dados da assembleia
-        lista_codigos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
-        df_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_codigos)
-        df_assembleia.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_dados_assembleia.xlsx', index=False)
-        logger.info("[Executar] Arquivo 'df_dados_assembleia.xlsx' criado com sucesso.")
+            # DADOS GRUPOS ATIVOS
+            df_gruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas]
+            df_todosGruposAtivos = pd.concat(df_gruposAtivos, ignore_index=True)
+            df_todosGruposAtivos.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_todosGruposAtivos.xlsx', index=False)
+            logger.info("[Executar] Arquivo 'df_todosGruposAtivos.xlsx' criado com sucesso.")
 
-        # Mesclando informações para criar Excel
-        # df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
-        # df_mediaContemplacao.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_medias_assembleias.xlsx', index=False)
-        # logger.info("[Executar] Arquivo 'df_medias_assembleias.xlsx' criado com sucesso.")
+            # DADOS ASSEMBLIEA.
+            lista_codigos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
+            df_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_codigos)
+            df_assembleia.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_dados_assembleia.xlsx', index=False)
+            logger.info("[Executar] Arquivo 'df_dados_assembleia.xlsx' criado com sucesso.")
 
-        df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
-        # df_excelFinal = pd.merge(df_excelFinal, df_mediaContemplacao, on="Grupo", how="left")
+            # CALCULAR MÉDIA COMTEMPLAÇÕES
+            if media_assembleia:
+                df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
+                df_mediaContemplacao.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_medias_assembleias.xlsx', index=False)
+                logger.info("[Executar] Arquivo 'df_medias_assembleias.xlsx' criado com sucesso.")
+                df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
+                df_excelFinal = pd.merge(df_excelFinal, df_mediaContemplacao, on="Grupo", how="left")
+            else:
+                df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
 
-        # Adicionando colunas específicas
-        # COLUNA SEM MEDIA
-        colunas = [
-            "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
-            "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
-            f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
-            f"Contemplados {consorcio.sigla_assembleia_passada}",  f"Menor Lance {consorcio.sigla_assembleia_passada}",
-            f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
-        ]
+            # ORGANIZANDO ORDEM DAS COLUNAS
+            if media_assembleia:
+                colunas = [
+                    "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
+                    "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
+                    f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
+                ]
+            else:
+                colunas = [
+                    "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
+                    "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_passada}",  f"Menor Lance {consorcio.sigla_assembleia_passada}",
+                    f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
+                ]
+            
+            # SALVANDO ARQUIVO FINAL ORGANIZDO. !
+            df_excelFinal = df_excelFinal[colunas]
+            df_excelFinal.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx', index=False)
+            logger.info("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
+            consorcio.EndBrowser()
 
-        #COLUNA COM MEDIA
-        # colunas = [
-        #     "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
-        #     "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
-        #     f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
-        #     f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
-        #     f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
-        # ]
-        df_excelFinal = df_excelFinal[colunas]
-        df_excelFinal.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx', index=False)
-        logger.info("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
+            # ATUALIZANDO LOG COUNT.TXT
+            with open(str(directory_mother+'\\Classes\\execution_count.txt'), 'w') as arquivo:
+                arquivo.write(str(execution_code + 1))
+            datetime_end_execution = datetime.now().strftime("%H:%M:%S")
+            logger.info(f"[Executar] Execução Finalizada [{datetime_end_execution}] | new execution count [{execution_code + 1}]")
 
-        # Encerrando o navegador
-        consorcio.EndBrowser()
-
-        # Atualizando o contador de execução
-        with open(str(directory_mother+'\\Classes\\execution_count.txt'), 'w') as arquivo:
-            arquivo.write(str(execution_code + 1))
-
-        datetime_end_execution = datetime.now().strftime("%H:%M:%S")
-        logger.info(f"[Executar] Execução Finalizada [{datetime_end_execution}] | new execution count [{execution_code + 1}]")
-
+        except Exception as err:
+            if 'logger' in locals() and hasattr(logger, 'error'):
+                logger.error(f"\n[Executar] Falha ao executar programa.\nERROR-> {err}")
+            datetime_end_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            execution_code += 1
+            if 'logger' in locals() and hasattr(logger, 'error'):
+                logger.error(f"[Executar] Execução Finalizada [{datetime_end_execution}] | new execution count [{execution_code}]")
+            sys.exit(1)
     except Exception as err:
-        if 'logger' in locals() and hasattr(logger, 'error'):
-            logger.error(f"\n[Executar] Falha ao executar programa.\nERROR-> {err}")
-        datetime_end_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        execution_code += 1
-        if 'logger' in locals() and hasattr(logger, 'error'):
-            logger.error(f"[Executar] Execução Finalizada [{datetime_end_execution}] | new execution count [{execution_code}]")
+        print(f"[Executar] FALHA AO CARREGAR IMPORTAÇÕES \n{err}")
         sys.exit(1)
 
-except Exception as err:
-    print(f"[Executar] FALHA AO CARREGAR IMPORTAÇÕES \n{err}")
-    sys.exit(1)
+
+"""
+    ADICIONA QUANTIDADE DE VENDAS NO ARQUIVO E GERA O 'TODOSGRUPOSATIVOSCOMVENDAS.XLSX'
+"""
+if parte2:
+    try:
+        # Ler os arquivos Excel
+        todos_grupos_ativos = pd.read_excel(
+            f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx',
+            sheet_name='Sheet1')
+        vagasM5 = pd.read_excel(r'.\\Classes\\VagasM5.xlsx', sheet_name='Planilha1')
+        vagasM6 = pd.read_excel(r'.\\Classes\\VagasM6.xlsx', sheet_name='Planilha1')
+        vagasM7 = pd.read_excel(r'.\\Classes\\VagasM7.xlsx', sheet_name='Planilha1')
+
+        # Selecionar as colunas relevantes dos arquivos de vagas
+        vagasM5 = vagasM5[['Grupo', 'Vagas M5']]
+        vagasM6 = vagasM6[['Grupo', 'Vagas M6']]
+        vagasM7 = vagasM7[['Grupo', 'Vagas M7']]
+
+        # Mesclar os dados com base na coluna 'Grupo'
+        merged_data = pd.merge(todos_grupos_ativos, vagasM5, on='Grupo', how='left')
+        merged_data = pd.merge(merged_data, vagasM6, on='Grupo', how='left')
+        merged_data = pd.merge(merged_data, vagasM7, on='Grupo', how='left')
+
+        # Garantir que os valores ausentes fiquem em branco
+        merged_data['Vagas M5'] = pd.to_numeric(merged_data['Vagas M5'], errors='coerce').fillna(0)
+        merged_data['Vagas M6'] = pd.to_numeric(merged_data['Vagas M6'], errors='coerce').fillna(0)
+        merged_data['Vagas M7'] = pd.to_numeric(merged_data['Vagas M7'], errors='coerce').fillna(0)
+        merged_data['Vagas'] = pd.to_numeric(merged_data['Vagas'], errors='coerce').fillna(0)
+
+        # Calcular as colunas 'Vendas M6', 'Vendas M7' e 'Vendas Atuais'
+        merged_data['Vendas M6'] = merged_data['Vagas M5'] - merged_data['Vagas M6']
+        merged_data['Vendas M7'] = merged_data['Vagas M6'] - merged_data['Vagas M7']
+        merged_data['Vendas Atuais'] = merged_data['Vagas M7'] - merged_data['Vagas']
+        # merged_data = merged_data.drop(columns=['Vagas M5', 'Vagas M6', 'Vagas M7'])
+
+        # Salvar o novo arquivo atualizado
+        merged_data.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivosComVendas.xlsx', index=False)
+        print("fim")
+
+    except Exception as err:
+        print(err)
+

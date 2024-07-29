@@ -222,13 +222,13 @@ class ConsorcioBB:
                     dados_assembleias_grupo = self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia)
                     dados_grupos.append(dados_assembleias_grupo)
                 except Exception as err:
-                    self.logger.warning(f"[ConsorcioBB] Tentando novamente para o grupo {grupo} devido a um erro.")
+                    self.logger.warning(f"[ConsorcioBB] Tentando novamente para o grupo {grupo} devido a uma falha de execução.")
                     try:
                         # Tenta executar novamente o método de execução para o grupo
                         dados_assembleias_grupo = self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia)
                         dados_grupos.append(dados_assembleias_grupo)
                     except Exception as err:
-                        self.logger.error(f"[ConsorcioBB] Erro novamente ao processar grupo {grupo}: ERROR {str(err)}")
+                        self.logger.warning(f"[ConsorcioBB] Média do grupo {grupo} não pode ser gerada.")
                         continue  # Ignora o grupo se falhar novamente
 
             df = pd.DataFrame(dados_grupos)

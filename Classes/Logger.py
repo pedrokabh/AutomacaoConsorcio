@@ -17,7 +17,7 @@ class Logger:
         self.logger.addHandler(console_handler)
         
         # Log em arquivo
-        file_handler = logging.FileHandler(f'{write_log_directory}')
+        file_handler = logging.FileHandler(write_log_directory)
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
     
