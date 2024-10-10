@@ -9,47 +9,43 @@ try:
     """
         !!! ATENÇÃO !!! - Caso seja outra assembleia, atualizar as colunas do mês.
     """
-    # 0.0 - VARIAVEIS
+    # 1.0 - VARIAVEIS GLOBAIS.
     executionCount_path = str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Builds\\execution_count.txt')
+    endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
+    execution_code = None
+    currentExecution_directory = None
 
-    # 1.0 - LENDO LOG COUNT.TXT
+    # 1.2 - VARIAVEIS DE EXECUÇÃO.
+    parte1 = True # GERA TODOS DADOS GRUPOS ATIVOS E ASSEMBLEIAS.
+    parte2 = False # REFERENTE A VENDAS EM RELAÇÃO AS ULTIMAS ASSEMBLEIAS.
+    media_assembleia = False # DECIDE EXTRAIR RELATORIO COM OU MEDIA DAS ASSEMBLEIAS
     
+    # 1.3 - VARIAVEIS PARA EXECUTAR PARTE 1.
+    if parte1:
+        categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
+        login = input("Digite o seu login: ")
+        senha = input("Digite a sua senha: ")
+        data_assembleia_passada = "27/08/2024"      # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")    
+        data_assembleia_retrasada = "26/07/2024"    # data_assembleia_passada = input("Digite a data da assembleia passada: ")
+        data_assembleia_mais_recente = "25/09/2024" # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
+    
+    # 1.4 - LENDO LOG COUNT.TXT
     with open(executionCount_path, 'r') as arquivo:
         conteudo = arquivo.read()
-    execution_code = int(conteudo)
+        execution_code = int(conteudo)
     
-    # 1.1 - CRIA O DIRETÓRIO PARA EXECUÇÃO DA BUILD ATUAL.
-    log_directory=f'.\\Builds\\Build Number {execution_code}'
-    os.makedirs(log_directory, exist_ok=True)  # Cria o diretório se não existir.
-    open(os.path.join(log_directory, f'Build {execution_code}.log'), 'a').close()
+    # 1.5 - CRIA O DIRETÓRIO PARA EXECUÇÃO DA BUILD ATUAL.
+    currentExecution_directory=f'.\\Builds\\Build Number {execution_code}'
+    os.makedirs(currentExecution_directory, exist_ok=True)  # Cria o diretório se não existir.
+    open(os.path.join(currentExecution_directory, f'Build {execution_code}.log'), 'a').close()
 
-    # 1.2 - INICIALIZANDO CLASSE LOGGER.
-    logger = Logger(execution_code, write_log_directory=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log')
+    # 1.6 - INICIALIZANDO CLASSE LOGGER.
+    logger = Logger(execution_code, write_log_directory=f'{currentExecution_directory}\\Build {execution_code}.log')
     datetime_start_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     logger.info(f"[Executar] Iniciando execução [{execution_code}] datetime [{datetime_start_execution}]")
 
     # -- INICIO EXECUÇÃO DA CLASSE ConsorcioBB.py   --
-
-    # 1.3 - VARIAVEIS DE EXECUÇÃO.
-    parte1 = True # GERA TODOS DADOS GRUPOS ATIVOS E ASSEMBLEIAS.
-    parte2 = False # REFERENTE A VENDAS EM RELAÇÃO AS ULTIMAS ASSEMBLEIAS.
-    media_assembleia = False # DECIDE EXTRAIR RELATORIO COM OU MEDIA DAS ASSEMBLEIAS
-
-    # 1.4 - VARIAVEIS PARA EXECUTAR PARTE 1.
-    if parte1:
-        categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
-        endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
-        
-        data_assembleia_passada = "27/08/2024" # AGOSTO
-        data_assembleia_retrasada = "26/07/2024" # JULHO
-        data_assembleia_mais_recente = "25/09/2024" # SETEMBRO
-        login = input("Digite o seu login: ")
-        senha = input("Digite a sua senha: ")
-        # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")
-        # data_assembleia_passada = input("Digite a data da assembleia passada: ")
-        # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
-    
-    # 1.5 - EXECUÇÃO.
+    # 1.6 - EXECUÇÃO.
     if parte1:
         try:
             ## --- Execução --- ##
@@ -153,10 +149,9 @@ try:
             logger.warning(f"[Executar] ARQUIVO 'TodosGruposAtivosComVendas.xlsx' GERADO COM SUCESSO.")
         except Exception as err:
             print(err)
-    
     # -- FIM EXECUÇÃO DA CLASSE ConsorcioBB.py      --
 
-    # 1.6 - ATUALIZANDO LOG COUNT.TXT
+    # 1.7 - ATUALIZANDO LOG COUNT.TXT
     logger.info(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] || Finalized Execution [{execution_code}]")
     with open(r'.\\Builds\\execution_count.txt', 'w') as arquivo:
         arquivo.write(str(execution_code + 1))
