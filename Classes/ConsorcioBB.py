@@ -181,21 +181,25 @@ class ConsorcioBB:
                     assembleia = coluna[1].text
                     data = coluna[2].text
                     qtde_contemp = coluna[3].text
-                    menor_lance = coluna[5].text
+
+                    if coluna[5].text == None or coluna[5].text == " ":
+                        menor_lance = "0"
+                    else:
+                        menor_lance = coluna[5].text
 
                     # Verificando de qual assembleia são os dados da linha correspondente.
                     if data == self.data_assembleia_mais_recente or data == "28/06/2024": # Assembleia Extraordinaria
                         dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_mais_recente}"] = assembleia
                         dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_mais_recente}"] = qtde_contemp
-                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_mais_recente}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_mais_recente}"] = "{:.2f}%".format(float(menor_lance.replace(",", "."))) 
                     elif data == self.data_assembleia_passada:
                         dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_passada}"] = assembleia
                         dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_passada}"] = qtde_contemp
-                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_passada}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_passada}"] = "{:.2f}%".format(float(menor_lance.replace(",", "."))) 
                     elif data == self.data_assembleia_retrasada:
                         dados_assembleias_grupo[f"N° Assembleia {self.sigla_assembleia_retrasada}"] = assembleia
                         dados_assembleias_grupo[f"Contemplados {self.sigla_assembleia_retrasada}"] = qtde_contemp
-                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_retrasada}"] = "{:.2f}%".format(float(menor_lance.replace(",", ".")))
+                        dados_assembleias_grupo[f"Menor Lance {self.sigla_assembleia_retrasada}"] = "{:.2f}%".format(float(menor_lance.replace(",", "."))) 
                     
                     #
                 dados_grupos.append(dados_assembleias_grupo)
@@ -208,7 +212,7 @@ class ConsorcioBB:
         except Exception as err:
             self.logger.error(f"\n[ConsorcioBB] Falha ReturnsDataFrameAssemblyData.\n{err}")
             self.TakeBrowserScreenshot()
-            sys.exit(1)
+            pass
 
     # --- FUNÇÕES PARA CALCULAR MEDIA DE CONTEMPLAÇÃO DOS GRUPOS --- #
 

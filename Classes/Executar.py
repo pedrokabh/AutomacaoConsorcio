@@ -6,7 +6,7 @@ from ConsorcioBB import ConsorcioBB
 from Logger import Logger
 
 try:
-    
+
     # LENDO LOG COUNT.TXT
     with open(str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Classes\\execution_count.txt'), 'r') as arquivo:
         conteudo = arquivo.read()
@@ -14,20 +14,27 @@ try:
     """
         !!! ATENÇÃO !!! - Caso seja outra assembleia, atualizar as colunas do mês.
         !!! ATENÇÃO !!! - Caso seja outra assembleia, deve-se extrair as vagas dos grupos na assembleia anterior e gerar o arquivo VagasMX.xlsxx
-        E modificar as colunas na mão.
+        e modificar as colunas na mão.
     """
+    # !! EXECUTAR DENTRO DO DIRETORIO automacaoconsorcio !!
     # !--- PARAMETROS DE EXECUÇÃO ---! #
     execution_code = int(conteudo)
-    parte1 = True
-    parte2 =True # TODA NOVA ASSEMBLEIA 
-    media_assembleia = True
-    categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
-    endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
-    data_assembleia_mais_recente = "26/07/2024" # JULHO
-    data_assembleia_passada = "25/06/2024" # JUNHO 
-    data_assembleia_retrasada = "27/05/2024" # MAIO
-    login = input("Digite o seu login: ")
-    senha = input("Digite a sua senha: ")
+    parte1 = True # GERA TODOS DADOS GRUPOS ATIVOS E ASSEMBLEIAS.
+    parte2 = False # REFERENTE A VENDAS EM RELAÇÃO AS ULTIMAS ASSEMBLEIAS.
+    media_assembleia = False # DECIDE EXTRAIR RELATORIO COM OU MEDIA DAS ASSEMBLEIAS
+
+    if parte1:
+        categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
+        endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
+        
+        data_assembleia_passada = "27/08/2024" # AGOSTO
+        data_assembleia_retrasada = "26/07/2024" # JULHO
+        data_assembleia_mais_recente = "25/09/2024" # SETEMBRO
+        # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")
+        # data_assembleia_passada = input("Digite a data da assembleia passada: ")
+        # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
+        login = input("Digite o seu login: ")
+        senha = input("Digite a sua senha: ")
     # !--- PARAMETROS DE EXECUÇÃO ---! #
 
 
@@ -103,7 +110,8 @@ try:
             df_excelFinal = df_excelFinal[colunas]
             df_excelFinal.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx', index=False)
             logger.info("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
-            consorcio.EndBrowser()   
+            consorcio.EndBrowser()
+            
         except Exception as err:
             print(f"[Executar] FALHA AO CARREGAR IMPORTAÇÕES \n{err}")
             sys.exit(1)
@@ -148,9 +156,9 @@ try:
             print(err)
 
     # ATUALIZANDO LOG COUNT.TXT
-    with open(str(directory_mother+'\\Classes\\execution_count.txt'), 'w') as arquivo:
-        arquivo.write(str(execution_code + 1))
-    logger.info(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] | new execution count [{execution_code + 1}]")    
+    # with open(str(directory_mother+'\\Classes\\execution_count.txt'), 'w') as arquivo:
+    #     arquivo.write(str(execution_code + 1))
+    # logger.info(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] | new execution count [{execution_code + 1}]")    
 
 except Exception as err:
     if 'logger' in locals() and hasattr(logger, 'error'):
