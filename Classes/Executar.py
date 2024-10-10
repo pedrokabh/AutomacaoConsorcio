@@ -6,23 +6,36 @@ from ConsorcioBB import ConsorcioBB
 from Logger import Logger
 
 try:
-
-    # LENDO LOG COUNT.TXT
-    with open(str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Classes\\execution_count.txt'), 'r') as arquivo:
-        conteudo = arquivo.read()
-
     """
         !!! ATENÇÃO !!! - Caso seja outra assembleia, atualizar as colunas do mês.
-        !!! ATENÇÃO !!! - Caso seja outra assembleia, deve-se extrair as vagas dos grupos na assembleia anterior e gerar o arquivo VagasMX.xlsxx
-        e modificar as colunas na mão.
     """
-    # !! EXECUTAR DENTRO DO DIRETORIO automacaoconsorcio !!
-    # !--- PARAMETROS DE EXECUÇÃO ---! #
+    # 0.0 - VARIAVEIS
+    executionCount_path = str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Builds\\execution_count.txt')
+
+    # 1.0 - LENDO LOG COUNT.TXT
+    
+    with open(executionCount_path, 'r') as arquivo:
+        conteudo = arquivo.read()
     execution_code = int(conteudo)
+    
+    # 1.1 - CRIA O DIRETÓRIO PARA EXECUÇÃO DA BUILD ATUAL.
+    log_directory=f'.\\Builds\\Build Number {execution_code}'
+    os.makedirs(log_directory, exist_ok=True)  # Cria o diretório se não existir.
+    open(os.path.join(log_directory, f'Build {execution_code}.log'), 'a').close()
+
+    # 1.2 - INICIALIZANDO CLASSE LOGGER.
+    logger = Logger(execution_code, write_log_directory=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log')
+    datetime_start_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    logger.info(f"[Executar] Iniciando execução [{execution_code}] datetime [{datetime_start_execution}]")
+
+    # -- INICIO EXECUÇÃO DA CLASSE ConsorcioBB.py   --
+
+    # 1.3 - VARIAVEIS DE EXECUÇÃO.
     parte1 = True # GERA TODOS DADOS GRUPOS ATIVOS E ASSEMBLEIAS.
     parte2 = False # REFERENTE A VENDAS EM RELAÇÃO AS ULTIMAS ASSEMBLEIAS.
     media_assembleia = False # DECIDE EXTRAIR RELATORIO COM OU MEDIA DAS ASSEMBLEIAS
 
+    # 1.4 - VARIAVEIS PARA EXECUTAR PARTE 1.
     if parte1:
         categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
         endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
@@ -30,30 +43,15 @@ try:
         data_assembleia_passada = "27/08/2024" # AGOSTO
         data_assembleia_retrasada = "26/07/2024" # JULHO
         data_assembleia_mais_recente = "25/09/2024" # SETEMBRO
+        login = input("Digite o seu login: ")
+        senha = input("Digite a sua senha: ")
         # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")
         # data_assembleia_passada = input("Digite a data da assembleia passada: ")
         # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
-        login = input("Digite o seu login: ")
-        senha = input("Digite a sua senha: ")
-    # !--- PARAMETROS DE EXECUÇÃO ---! #
-
-
-    # INICIALIZANDO LOG
-    logger = Logger(execution_code, write_log_directory=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log')
-    datetime_start_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    logger.info(f"[Executar] Iniciando execução [{execution_code}] datetime [{datetime_start_execution}]")
     
-    # GERA ARQUIVO TODOSGRUPOSATIVOS.XLSX (DADOS DOS GRUPOS / MEDIA CONTEMPLAÇÃO / DADOS ASSEMBLEIAS)
+    # 1.5 - EXECUÇÃO.
     if parte1:
         try:
-            os.system('cls')
-
-            # DIRETORIO ARQUIVO LOG.
-            directory_mother = f'{os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))}\\Builds\\Build Number {execution_code}\\'
-            os.makedirs(os.path.dirname( str(directory_mother) ), exist_ok=True)
-
-            
-
             ## --- Execução --- ##
             consorcio = ConsorcioBB(
                 login=login,
@@ -63,22 +61,22 @@ try:
                 data_assembleia_passada=data_assembleia_passada,
                 data_assembleia_retrasada=data_assembleia_retrasada,
                 logger=logger,
-                cwd=directory_mother
+                cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log'
             )
 
-            # DADOS GRUPOS ATIVOS
+            # 1.0 - DADOS GRUPOS ATIVOS
             df_gruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas]
             df_todosGruposAtivos = pd.concat(df_gruposAtivos, ignore_index=True)
             df_todosGruposAtivos.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_todosGruposAtivos.xlsx', index=False)
             logger.info("[Executar] Arquivo 'df_todosGruposAtivos.xlsx' criado com sucesso.")
 
-            # DADOS ASSEMBLIEA.
+            # 1.1 - DADOS ASSEMBLIEA.
             lista_codigos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
             df_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_codigos)
             df_assembleia.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_dados_assembleia.xlsx', index=False)
             logger.info("[Executar] Arquivo 'df_dados_assembleia.xlsx' criado com sucesso.")
 
-            # CALCULAR MÉDIA COMTEMPLAÇÕES
+            # 1.2 - CALCULAR MÉDIA COMTEMPLAÇÕES
             if media_assembleia:
                 df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
                 df_mediaContemplacao.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_medias_assembleias.xlsx', index=False)
@@ -88,7 +86,7 @@ try:
             else:
                 df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
 
-            # ORGANIZANDO ORDEM DAS COLUNAS
+            # 1.3 - ORGANIZANDO ORDEM DAS COLUNAS
             if media_assembleia:
                 colunas = [
                     "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
@@ -106,7 +104,7 @@ try:
                     f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
                 ]
             
-            # SALVANDO ARQUIVO FINAL ORGANIZDO. !
+            # 1.4 - SALVANDO ARQUIVO FINAL ORGANIZDO.
             df_excelFinal = df_excelFinal[colunas]
             df_excelFinal.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx', index=False)
             logger.info("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
@@ -116,7 +114,8 @@ try:
             print(f"[Executar] FALHA AO CARREGAR IMPORTAÇÕES \n{err}")
             sys.exit(1)
 
-    #ADICIONA QUANTIDADE DE VENDAS NO ARQUIVO E GERA O 'TODOSGRUPOSATIVOSCOMVENDAS.XLSX'
+     #ADICIONA QUANTIDADE DE VENDAS NO ARQUIVO E GERA O 'TODOSGRUPOSATIVOSCOMVENDAS.XLSX'
+    
     if parte2:
         try:
             # Ler os arquivos Excel
@@ -154,17 +153,22 @@ try:
             logger.warning(f"[Executar] ARQUIVO 'TodosGruposAtivosComVendas.xlsx' GERADO COM SUCESSO.")
         except Exception as err:
             print(err)
+    
+    # -- FIM EXECUÇÃO DA CLASSE ConsorcioBB.py      --
 
-    # ATUALIZANDO LOG COUNT.TXT
-    # with open(str(directory_mother+'\\Classes\\execution_count.txt'), 'w') as arquivo:
-    #     arquivo.write(str(execution_code + 1))
-    # logger.info(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] | new execution count [{execution_code + 1}]")    
+    # 1.6 - ATUALIZANDO LOG COUNT.TXT
+    logger.info(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] || Finalized Execution [{execution_code}]")
+    with open(r'.\\Builds\\execution_count.txt', 'w') as arquivo:
+        arquivo.write(str(execution_code + 1))
 
 except Exception as err:
+    # MENSAGEM DE ERROR.
     if 'logger' in locals() and hasattr(logger, 'error'):
         logger.error(f"\n[Executar] Falha ao executar programa.\nERROR-> {err}")
-    datetime_end_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    execution_code += 1
-    if 'logger' in locals() and hasattr(logger, 'error'):
-        logger.error(f"[Executar] Execução Finalizada [{datetime_end_execution}] | new execution count [{execution_code}]")
+    
+    # INSERINDO MENSAGEM NO LOG E ATUALIZANDO LOG COUNT.
+    logger.warning(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] || Finalized Execution [{execution_code}]")
+    with open(str('.\\execution_count.txt'), 'w') as arquivo:
+        arquivo.write(str(execution_code + 1))
+        print("[Executar] Arquivo de controle de log (execution_count.txt) encerrado com sucesso.")
     sys.exit(1)
