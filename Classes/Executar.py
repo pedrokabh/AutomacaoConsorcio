@@ -19,7 +19,7 @@ try:
     parte1 = True # GERA TODOS DADOS GRUPOS ATIVOS E ASSEMBLEIAS.
     parte2 = False # REFERENTE A VENDAS EM RELAÇÃO AS ULTIMAS ASSEMBLEIAS.
     media_assembleia = False # DECIDE EXTRAIR RELATORIO COM OU MEDIA DAS ASSEMBLEIAS
-    
+
     # 1.3 - VARIAVEIS PARA EXECUTAR PARTE 1.
     if parte1:
         categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
@@ -63,24 +63,30 @@ try:
             # 1.0 - DADOS GRUPOS ATIVOS
             df_gruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas]
             df_todosGruposAtivos = pd.concat(df_gruposAtivos, ignore_index=True)
-            df_todosGruposAtivos.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_todosGruposAtivos.xlsx', index=False)
+            df_todosGruposAtivos.to_excel(f'{currentExecution_directory}\\df_todosGruposAtivos.xlsx', index=False)
             logger.info("[Executar] Arquivo 'df_todosGruposAtivos.xlsx' criado com sucesso.")
 
-            # 1.1 - DADOS ASSEMBLIEA.
-            lista_codigos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
-            df_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_codigos)
-            df_assembleia.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_dados_assembleia.xlsx', index=False)
-            logger.info("[Executar] Arquivo 'df_dados_assembleia.xlsx' criado com sucesso.")
-
-            # 1.2 - CALCULAR MÉDIA COMTEMPLAÇÕES
+            # 1.1 - CALCULAR MÉDIA COMTEMPLAÇÕES
             if media_assembleia:
+
+                # 1.1 - DADOS ASSEMBLIEA.
+                lista_codigos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
+                df_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_codigos)
+                df_assembleia.to_excel(f'{currentExecution_directory}\\df_dados_assembleia.xlsx', index=False)
+                logger.info("[Executar] Arquivo 'df_dados_assembleia.xlsx' criado com sucesso.")
+
+                # 1.1 - CÁLCULO MÉDIA CONTEMPLAÇÃO POR ASSEMBLEIA.
                 df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_assembleia, lista_grupos=lista_codigos)
-                df_mediaContemplacao.to_excel(f'.\\Builds\\Build Number {execution_code}\\df_medias_assembleias.xlsx', index=False)
+                df_mediaContemplacao.to_excel(f'{currentExecution_directory}\\df_medias_assembleias.xlsx', index=False)
                 logger.info("[Executar] Arquivo 'df_medias_assembleias.xlsx' criado com sucesso.")
-                df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
-                df_excelFinal = pd.merge(df_excelFinal, df_mediaContemplacao, on="Grupo", how="left")
+                df_excelFinal = pd.merge(
+                                            pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
+                                            , df_mediaContemplacao
+                                            , on="Grupo"
+                                            , how="left"
+                                        )
             else:
-                df_excelFinal = pd.merge(df_todosGruposAtivos, df_assembleia, on="Grupo", how="left")
+                df_excelFinal = df_todosGruposAtivos
 
             # 1.3 - ORGANIZANDO ORDEM DAS COLUNAS
             if media_assembleia:
@@ -92,6 +98,7 @@ try:
                     f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
                 ]
             else:
+                # !!!!!!!!!!! REMOVER COLUNAS QUE NÃO ESTÃO PRESENTES NO df_todosGruposAtivos
                 colunas = [
                     "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
                     "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
@@ -102,8 +109,8 @@ try:
             
             # 1.4 - SALVANDO ARQUIVO FINAL ORGANIZDO.
             df_excelFinal = df_excelFinal[colunas]
-            df_excelFinal.to_excel(f'.\\Builds\\Build Number {execution_code}\\TodosGruposAtivos.xlsx', index=False)
-            logger.info("[Executar] Arquivo 'TodosGruposAtivos.xlsx' criado com sucesso.")
+            df_excelFinal.to_excel(f'{currentExecution_directory}\\TodosGruposAtivos BUILD({execution_code}).xlsx', index=False)
+            logger.info(f"[Executar] Arquivo 'TodosGruposAtivos BUILD({execution_code}).xlsx' criado com sucesso.")
             consorcio.EndBrowser()
             
         except Exception as err:
@@ -111,7 +118,6 @@ try:
             sys.exit(1)
 
      #ADICIONA QUANTIDADE DE VENDAS NO ARQUIVO E GERA O 'TODOSGRUPOSATIVOSCOMVENDAS.XLSX'
-    
     if parte2:
         try:
             # Ler os arquivos Excel
