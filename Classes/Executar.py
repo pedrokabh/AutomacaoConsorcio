@@ -16,12 +16,8 @@ try:
     currentExecution_directory = None
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO.
-    dados_assembleia, media_assembleia = False, False 
-        # - !! LEGENDA !! - #
-        # dados_assembleia, media_assembleia = False, False -> Extraí todos grupos ativos.
-        # dados_assembleia, media_assembleia = True , False -> Extraí todos grupos ativos e dados assembleia.
-        # dados_assembleia, media_assembleia = True , True  -> Extraí todos grupos ativos, dados assembleia, média contemplação grupo.
-
+    dados_assembleia, media_assembleia = False, False
+    
     # 1.3 - VARIAVEIS PARA EXECUTAR CLASSE CONSORCIO BB.
     categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
     login = input("Digite o seu login: ")
