@@ -15,7 +15,7 @@ try:
     import datetime
 except Exception as err:
     print(f"[ConsorcioBB] FALHA AO CARREGAR IMPORTAÇÕES \n{err}")
-    sys.exit(1)
+    raise
 
 class ConsorcioBB:
     def __init__(self, login, senha, endereco_chrome_driver, logger, cwd, data_assembleia_mais_recente=None, data_assembleia_passada=None, data_assembleia_retrasada=None):
@@ -126,7 +126,7 @@ class ConsorcioBB:
         except Exception as err:
             self.logger.error(f"[ConsorcioBB] Falha ReturnsDataFrameWithActiveGroups()\n {err}")
             self.TakeBrowserScreenshot()
-            sys.exit(1)
+            raise
 
     def AcronymTranslator(self, sigla):
         dicionario_siglas = {
@@ -213,7 +213,7 @@ class ConsorcioBB:
         except Exception as err:
             self.logger.error(f"\n[ConsorcioBB] Falha ReturnsDataFrameAssemblyData.\n{err}")
             self.TakeBrowserScreenshot()
-            pass
+            raise
 
     # --- FUNÇÕES PARA CALCULAR MEDIA DE CONTEMPLAÇÃO DOS GRUPOS --- #
 
@@ -243,6 +243,7 @@ class ConsorcioBB:
 
         except Exception as err:
             self.logger.error(f"[ConsorcioBB] Erro geral: {str(err)}")
+            raise
 
     def ReturnAveragesAssemblies(self, grupo, df_dadosAssembleia):
         dados_assembleias_grupo = {
@@ -308,7 +309,7 @@ class ConsorcioBB:
 
         except Exception as err:
             self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click() # Voltando para menu Portal Parceiros.
-            self.logger.error(f"[ConsorcioBB] Erro ao processar grupo {grupo}: {str(err)}")
+            self.logger.error(f"[ConsorcioBB] Erro ao processar grupo {grupo}")
             raise  # Relança a exceção para ser tratada no método principal
 
         return dados_assembleias_grupo
@@ -389,6 +390,7 @@ class ConsorcioBB:
 
         except Exception as err:
             self.logger.error(f"error\n{err}")
+            raise
 
     # --- FUNÇÕES PADRÕES -- #
     def StartBrowser(self):
@@ -400,7 +402,7 @@ class ConsorcioBB:
             return browser, wait
         except Exception as err:
             self.logger.error(f"\n[ConsorcioBB] Falha StartBrowser.\n{err}")
-            sys.exit(1)
+            raise
     
     def Login(self):
         try:
@@ -413,7 +415,7 @@ class ConsorcioBB:
             self.logger.info("[ConsorcioBB] Logado com sucesso no PP BB Consórcio.")
         except Exception as err:
             self.logger.error(f"\n[ConsorcioBB] Falha Login.\n{err}")
-            sys.exit(1)
+            raise
     
     def ClosePoupUp(self):
         try:
@@ -422,17 +424,16 @@ class ConsorcioBB:
             self.logger.info("[ConsorcioBB] Poup-Up fechado.")
         except Exception as err:
             self.logger.error(f"\n[ConsorcioBB] Falha no metodo ClosePoupUp.\n{err}")
-            sys.exit(1)
+            raise
     
     def EndBrowser(self):
         try:
             # Encerra navegador.
             self.logger.info("[ConsorcioBB] Encerrando Chrome.")
             self.browser.quit()
-            sys.exit(0)
         except Exception as err:
             self.logger.error(f"\n[ConsorcioBB] Falha no método EndBrowser.\n{err}")
-            sys.exit(1)
+            raise
 
     def TakeBrowserScreenshot(self):
         try:
@@ -443,4 +444,4 @@ class ConsorcioBB:
             return True
         except Exception as e:
             self.logger.error(f"[ConsrocioBB] Falha TakeBrowserScreenshot\n {str(e)}")
-            return False
+            raise

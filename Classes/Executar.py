@@ -1,11 +1,11 @@
-import sys
-import os
-import pandas as pd
-from datetime import datetime
-from ConsorcioBB import ConsorcioBB
-from Logger import Logger
-
 try:
+    import sys
+    import os
+    import pandas as pd
+    from datetime import datetime
+    from ConsorcioBB import ConsorcioBB
+    from Logger import Logger
+
     """
         !!! ATENÇÃO !!! - Caso seja outra assembleia, atualizar as colunas do mês.
     """
@@ -16,16 +16,16 @@ try:
     currentExecution_directory = None
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO. ------------------------------------------------------------------------------------------------------
-    dados_assembleia, media_assembleia = False, False
+    dados_assembleia, media_assembleia = True, True
     # 1.3 - VARIAVEIS PARA EXECUTAR CLASSE CONSORCIO BB. 
     categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
     login = input("Digite o seu login: ")
     senha = input("Digite a sua senha: ")
     data_assembleia_passada, data_assembleia_retrasada, data_assembleia_mais_recente = None, None, None
-    if dados_assembleia or media_assembleia:        # VARIAVEIS PARA EXECUTAR DADOS E MEDIA DA ASSEMBLEIA.
-        data_assembleia_passada = "27/08/2024"      # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")    
-        data_assembleia_retrasada = "26/07/2024"    # data_assembleia_passada = input("Digite a data da assembleia passada: ")
-        data_assembleia_mais_recente = "25/09/2024" # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
+    if dados_assembleia or media_assembleia: # VARIAVEIS PARA EXECUTAR DADOS E MEDIA DA ASSEMBLEIA.
+        data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") # "27/08/2024"
+        data_assembleia_passada = input("Digite a data da assembleia passada: ")           # "26/07/2024"
+        data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")       # "25/09/2024"
     # 1.3 -------------------------------------------------------------------------------------------------------------------------------
 
     # 1.4 - LENDO LOG COUNT.TXT
@@ -102,6 +102,7 @@ try:
             consorcio.EndBrowser()
     except Exception as err:
         print(f"[Executar] FALHA AO EXECUTAR CLASSE ConsorcioBB.py.\n{err}")
+        raise
     # -- FIM EXECUÇÃO DA CLASSE ConsorcioBB.py -- #
 
     # 1.7 - ATUALIZANDO LOG COUNT.TXT
