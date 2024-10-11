@@ -15,10 +15,9 @@ try:
     execution_code = None
     currentExecution_directory = None
 
-    # 1.2 - VARIAVEIS DE EXECUÇÃO.
+    # 1.2 - VARIAVEIS DE EXECUÇÃO. ------------------------------------------------------------------------------------------------------
     dados_assembleia, media_assembleia = False, False
-    
-    # 1.3 - VARIAVEIS PARA EXECUTAR CLASSE CONSORCIO BB.
+    # 1.3 - VARIAVEIS PARA EXECUTAR CLASSE CONSORCIO BB. 
     categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
     login = input("Digite o seu login: ")
     senha = input("Digite a sua senha: ")
@@ -27,6 +26,7 @@ try:
         data_assembleia_passada = "27/08/2024"      # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")    
         data_assembleia_retrasada = "26/07/2024"    # data_assembleia_passada = input("Digite a data da assembleia passada: ")
         data_assembleia_mais_recente = "25/09/2024" # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
+    # 1.3 -------------------------------------------------------------------------------------------------------------------------------
 
     # 1.4 - LENDO LOG COUNT.TXT
     with open(executionCount_path, 'r') as arquivo:
