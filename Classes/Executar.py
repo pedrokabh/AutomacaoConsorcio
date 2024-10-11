@@ -11,21 +11,23 @@ try:
     """
     # 1.0 - VARIAVEIS GLOBAIS.
     executionCount_path = str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Builds\\execution_count.txt')
-    endereco_chrome_driver = r"..\chromedriver-win64\chromedriver.exe"
+    endereco_chrome_driver = str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\chromedriver-win64\\chromedriver.exe')
     execution_code = None
     currentExecution_directory = None
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO.
     dados_assembleia, media_assembleia = False, False 
-    # dados_assembleia, media_assembleia = False, False -> Extraí todos grupos ativos.
-    # dados_assembleia, media_assembleia = True , False -> Extraí todos grupos ativos e dados assembleia.
-    # dados_assembleia, media_assembleia = True , True  -> Extraí todos grupos ativos, dados assembleia, média contemplação grupo.
+        # - !! LEGENDA !! - #
+        # dados_assembleia, media_assembleia = False, False -> Extraí todos grupos ativos.
+        # dados_assembleia, media_assembleia = True , False -> Extraí todos grupos ativos e dados assembleia.
+        # dados_assembleia, media_assembleia = True , True  -> Extraí todos grupos ativos, dados assembleia, média contemplação grupo.
 
-    # 1.3 - VARIAVEIS PARA EXECUTAR PARTE 1.
+    # 1.3 - VARIAVEIS PARA EXECUTAR CLASSE CONSORCIO BB.
     categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
     login = input("Digite o seu login: ")
     senha = input("Digite a sua senha: ")
-    if dados_assembleia or media_assembleia:
+    data_assembleia_passada, data_assembleia_retrasada, data_assembleia_mais_recente = None, None, None
+    if dados_assembleia or media_assembleia:        # VARIAVEIS PARA EXECUTAR DADOS E MEDIA DA ASSEMBLEIA.
         data_assembleia_passada = "27/08/2024"      # data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ")    
         data_assembleia_retrasada = "26/07/2024"    # data_assembleia_passada = input("Digite a data da assembleia passada: ")
         data_assembleia_mais_recente = "25/09/2024" # data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")
@@ -53,11 +55,11 @@ try:
             login=login,
             senha=senha,
             endereco_chrome_driver=endereco_chrome_driver,
+            logger=logger,
+            cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log',
             data_assembleia_mais_recente=data_assembleia_mais_recente,
             data_assembleia_passada=data_assembleia_passada,
-            data_assembleia_retrasada=data_assembleia_retrasada,
-            logger=logger,
-            cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log'
+            data_assembleia_retrasada=data_assembleia_retrasada
         )
 
         # 1.0 - DADOS GRUPOS ATIVOS.
@@ -91,7 +93,7 @@ try:
             logger.info(f"[Executar] Arquivo 'TodosGruposAtivos BUILD({execution_code}).xlsx' criado com sucesso.")
             consorcio.EndBrowser()        
         # 2° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS).
-        elif not df_dados_assembleia and not df_dados_assembleia:
+        elif not dados_assembleia and not media_assembleia:
             # 1.2 - SALVANDO ARQUIVO FINAL ORGANIZDO.
             df_todosGruposAtivos.to_excel(f'{currentExecution_directory}\\TodosGruposAtivos BUILD({execution_code}).xlsx', index=False)
             logger.info(f"[Executar] Arquivo 'TodosGruposAtivos BUILD({execution_code}).xlsx' criado com sucesso.")
@@ -104,7 +106,6 @@ try:
             consorcio.EndBrowser()
     except Exception as err:
         print(f"[Executar] FALHA AO EXECUTAR CLASSE ConsorcioBB.py.\n{err}")
-        sys.exit(1)
     # -- FIM EXECUÇÃO DA CLASSE ConsorcioBB.py -- #
 
     # 1.7 - ATUALIZANDO LOG COUNT.TXT
@@ -119,7 +120,7 @@ except Exception as err:
     
     # 0.1 - INSERINDO MENSAGEM NO LOG E ATUALIZANDO LOG COUNT.
     logger.warning(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] || Finalized Execution [{execution_code}]")
-    with open(str('.\\execution_count.txt'), 'w') as arquivo:
+    with open(executionCount_path, 'w') as arquivo:
         arquivo.write(str(execution_code + 1))
         print("[Executar] Arquivo de controle de log (execution_count.txt) encerrado com sucesso.")
     sys.exit(1)

@@ -18,17 +18,18 @@ except Exception as err:
     sys.exit(1)
 
 class ConsorcioBB:
-    def __init__(self, login, senha, endereco_chrome_driver, data_assembleia_mais_recente, data_assembleia_passada, data_assembleia_retrasada, logger, cwd):
-        
-        # Variaveis Assembleia Mais Recente
-        self.data_assembleia_mais_recente = data_assembleia_mais_recente
-        self.sigla_assembleia_mais_recente = self.ReturnsMonthCode(data_assembleia_mais_recente)
-        # Variaveis Assembleia Passada
-        self.data_assembleia_passada = data_assembleia_passada
-        self.sigla_assembleia_passada = self.ReturnsMonthCode(data_assembleia_passada)
-        # Variaveis Assembleia Retrasada
-        self.data_assembleia_retrasada = data_assembleia_retrasada
-        self.sigla_assembleia_retrasada = self.ReturnsMonthCode(data_assembleia_retrasada)
+    def __init__(self, login, senha, endereco_chrome_driver, logger, cwd, data_assembleia_mais_recente=None, data_assembleia_passada=None, data_assembleia_retrasada=None):
+        if data_assembleia_mais_recente != None and data_assembleia_passada != None and data_assembleia_retrasada != None:
+            # Variaveis Assembleia Mais Recente
+            self.data_assembleia_mais_recente = data_assembleia_mais_recente
+            self.sigla_assembleia_mais_recente = self.ReturnsMonthCode(data_assembleia_mais_recente)
+            # Variaveis Assembleia Passada
+            self.data_assembleia_passada = data_assembleia_passada
+            self.sigla_assembleia_passada = self.ReturnsMonthCode(data_assembleia_passada)
+            # Variaveis Assembleia Retrasada
+            self.data_assembleia_retrasada = data_assembleia_retrasada
+            self.sigla_assembleia_retrasada = self.ReturnsMonthCode(data_assembleia_retrasada)
+
         self.logger = logger
         self.cwd = cwd
 

@@ -43,4 +43,3 @@ class Logger:
     
     def closeConsole(self):
         logging.shutdown()
-        
