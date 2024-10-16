@@ -1,5 +1,6 @@
 try:
     # MELHORIAS PARA A PRÓXIMA VERSÃO #
+    # VERIFICAÇÃO DAS DATAS DA ASSEMBLEIA PARA GARANTIR QUE ESTEJAM CERTAS.
     # IDENTIFICAÇÃO DE QUANTAS CONTEMPLAÇÕES POR SORTEIO E QUANTAS POR LANCE (1449 / 1447)
 
     # 0.0 # IMPORTAÇÕES NECESSÁRIAS PARA EXECUTAR O PROJETO.
@@ -18,7 +19,7 @@ try:
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO. ------------------------------------------------------------------------------------------------------
     dados_assembleia, media_assembleia = True, True 
-    categoria_processadas = ["IMP","IM240", "TC", "AI", "AU", "MO"] # ["EE"] ["IMP"]
+    categoria_processadas = ["IMP"] # ["IMP","IM240", "TC", "AI", "AU", "MO"] # ["EE"] 
     data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") if dados_assembleia or media_assembleia else None
     data_assembleia_passada = input("Digite a data da assembleia passada: ") if dados_assembleia or media_assembleia else None
     data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ") if dados_assembleia or media_assembleia else None
@@ -69,14 +70,14 @@ try:
 
             # 1.1 - DADOS ASSEMBLEIA.
             if dados_assembleia or media_assembleia:
-                df_dados_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_id_grupos)
+                df_dados_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_id_grupos, sigla=sigla)
                 df_dados_assembleia = pd.merge(df_todosGruposAtivos, df_dados_assembleia, on="Grupo", how="left")
 
             # 1.1 - DECIDE QUAL DADOS VAI CONTER NO EXCEL GERADO.
             # 1° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA, MEDIA CONTEMPLACAO P/ GRUPO).
             if media_assembleia:
                 # 1.1.1 - CÁLCULO MÉDIA CONTEMPLAÇÃO POR ASSEMBLEIA.
-                df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_dados_assembleia, lista_grupos=lista_id_grupos)
+                df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_dados_assembleia, lista_grupos=lista_id_grupos, sigla=sigla)
                 df_excelFinal = pd.merge(df_dados_assembleia, df_mediaContemplacao, on="Grupo", how="left")
 
                 # 1.1.2 - ORGANIZA COLUNAS E SALVA EXCEL COM DADOS.

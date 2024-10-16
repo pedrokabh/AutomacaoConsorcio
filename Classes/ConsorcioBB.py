@@ -113,7 +113,7 @@ class ConsorcioBB:
             df = pd.DataFrame(grupos_ativos) # Transformando dicionário em data frame.
             del grupos_ativos
             df = df.loc[df.groupby(['Grupo', 'Prazo'])['CartasCredito'].idxmin()]
-            self.logger.info(f"\n[ConsorcioBB] Data frame Grupos Ativos [{sigla}] extraído com sucesso. ")
+            self.logger.info(f"[ConsorcioBB] Data frame Grupos Ativos [{sigla}] extraído com sucesso. ")
             return df
             #
         
@@ -145,7 +145,7 @@ class ConsorcioBB:
         month_code = f'M{month_number}'
         return month_code
 
-    def ReturnsDataFrameAssemblyData(self, lista_grupos):
+    def ReturnsDataFrameAssemblyData(self, lista_grupos, sigla):
         try:
             # 1.1 # Navegando até página 'Resultado de Assembleias'. 
             self.wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="ctl00_Conteudo_rptFormularios_ctl27_lnkFormulario"]'))).click()
@@ -201,7 +201,7 @@ class ConsorcioBB:
 
             self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click() # Voltando para menu Portal Parceiros.
             df = pd.DataFrame(dados_grupos)
-            self.logger.info("[ConsorcioBB] Dados das Assembleias Extraídos com Sucesso.")
+            self.logger.info(f"[ConsorcioBB] Dados das Assembleias [{sigla}] Extraídos com Sucesso.")
             return df
         
         except Exception as err:
@@ -211,7 +211,7 @@ class ConsorcioBB:
 
     # --- FUNÇÕES PARA CALCULAR MEDIA DE CONTEMPLAÇÃO DOS GRUPOS --- #
 
-    def ReturnsDataFrameGroupsMedia(self, df_dadosAssembleia, lista_grupos):
+    def ReturnsDataFrameGroupsMedia(self, df_dadosAssembleia, lista_grupos, sigla):
         try:
             dados_grupos = []  # Adiciona todos os dados dos grupos.
 
@@ -232,7 +232,7 @@ class ConsorcioBB:
 
             df = pd.DataFrame(dados_grupos)
             self.browser.find_element(By.XPATH, '//*[@id="ctl00_lnkHome"]').click()
-            self.logger.info("[ConsorcioBB] Média contemplações extraídas com sucesso.")
+            self.logger.info(f"[ConsorcioBB] Média contemplações [{sigla}] extraídas com sucesso.")
             return df
 
         except Exception as err:
