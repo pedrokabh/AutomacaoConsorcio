@@ -211,23 +211,21 @@ class ConsorcioBB:
 
     # --- FUNÇÕES PARA CALCULAR MEDIA DE CONTEMPLAÇÃO DOS GRUPOS --- #
 
-    def ReturnsDataFrameGroupsMedia(self, df_dadosAssembleia, lista_grupos, sigla):
+    def ReturnsDataFrameGroupsInfo(self, df_dadosAssembleia, lista_grupos, sigla):
         try:
             dados_grupos = []  # Adiciona todos os dados dos grupos.
 
             for grupo in lista_grupos:
                 try:
                     # Chama o método de execução para processar o grupo
-                    dados_assembleias_grupo = self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia)
-                    dados_grupos.append(dados_assembleias_grupo)
+                    dados_grupos.append(self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia))
                 except Exception as err:
-                    self.logger.warning(f"[ConsorcioBB] Tentando novamente para o grupo {grupo} devido a uma falha de execução.")
+                    self.logger.warning(f"[ConsorcioBB] Tentando Extrair Informações do grupo [{grupo}] devido a uma falha de execução.")
                     try:
                         # Tenta executar novamente o método de execução para o grupo
-                        dados_assembleias_grupo = self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia)
-                        dados_grupos.append(dados_assembleias_grupo)
+                        dados_grupos.append(self.ReturnAveragesAssemblies(grupo, df_dadosAssembleia))
                     except Exception as err:
-                        self.logger.warning(f"[ConsorcioBB] Média do grupo {grupo} não pode ser gerada.")
+                        self.logger.warning(f"[ConsorcioBB] Informações do grupo [{grupo}°] AUSENTE NA PLANILHA GERADA.")
                         continue  # Ignora o grupo se falhar novamente
 
             df = pd.DataFrame(dados_grupos)
@@ -244,7 +242,19 @@ class ConsorcioBB:
             "Grupo": int(grupo),
             f"Media Lance {self.sigla_assembleia_mais_recente}": None,
             f"Media Lance {self.sigla_assembleia_passada}": None,
-            f"Media Lance {self.sigla_assembleia_retrasada}": None
+            f"Media Lance {self.sigla_assembleia_retrasada}": None,
+
+            f"Qtde Cotas LL {self.sigla_assembleia_mais_recente}": None,
+            f"Qtde Cotas LL {self.sigla_assembleia_passada}": None,
+            f"Qtde Cotas LL {self.sigla_assembleia_retrasada}": None,
+
+            f"Qtde Cotas LF {self.sigla_assembleia_mais_recente}": None,
+            f"Qtde Cotas LF {self.sigla_assembleia_passada}": None,
+            f"Qtde Cotas LF {self.sigla_assembleia_retrasada}": None,
+
+            f"Qtde Cotas Sorteio {self.sigla_assembleia_mais_recente}": None,
+            f"Qtde Cotas Sorteio {self.sigla_assembleia_passada}": None,
+            f"Qtde Cotas Sorteio {self.sigla_assembleia_retrasada}": None
         }
         
         try:
@@ -284,18 +294,32 @@ class ConsorcioBB:
                 celulas = linha.find_elements(By.TAG_NAME, 'td')
                 data = celulas[2].text
                 buton_CotasContempladas = celulas[6].find_element(By.TAG_NAME, 'input')
-                media_lance = None
                 
                 # ABRINDO ABA DA ASSEMBLEIA PARA CALCULAR MEDIA LANCE
                 buton_CotasContempladas.click()
-                media_lance = self.CalculateMediaAssembly(grupo, df_dadosAssembleia)
-
+                media_percentuais, qtde_cotas_lancesFixos, qtde_cotas_lancesLivres, qtde_cotas_sorteios = self.CalculateAssemblyInfo(grupo, df_dadosAssembleia)
+                
+                # ADICIONANDO DADOS/COLUNAS DA ASSEMBLEIA MAIS RECENTE.
                 if data == self.data_assembleia_mais_recente:
-                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_mais_recente}"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_mais_recente}"] = f"{float(media_percentuais):.2f}".replace('.', ',') + '%'
+                    dados_assembleias_grupo[f"Qtde Cotas LL {self.sigla_assembleia_mais_recente}"] = qtde_cotas_lancesLivres
+                    dados_assembleias_grupo[f"Qtde Cotas LF {self.sigla_assembleia_mais_recente}"] = qtde_cotas_lancesFixos
+                    dados_assembleias_grupo[f"Qtde Cotas Sorteio {self.sigla_assembleia_mais_recente}"] = qtde_cotas_sorteios
+                
+                # ADICIONANDO DADOS/COLUNAS DA ASSEMBLEIA PASSADA.
                 elif data == self.data_assembleia_passada:
-                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_passada}"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_passada}"] = f"{float(media_percentuais):.2f}".replace('.', ',') + '%'
+                    dados_assembleias_grupo[f"Qtde Cotas LL {self.sigla_assembleia_passada}"] = qtde_cotas_lancesLivres
+                    dados_assembleias_grupo[f"Qtde Cotas LF {self.sigla_assembleia_passada}"] = qtde_cotas_lancesFixos
+                    dados_assembleias_grupo[f"Qtde Cotas Sorteio {self.sigla_assembleia_passada}"] = qtde_cotas_sorteios
+
+                # ADICIONANDO DADOS/COLUNAS DA ASSEMBLEIA RETRASADA.
                 elif data == self.data_assembleia_retrasada:
-                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_retrasada}"] = f"{float(media_lance):.2f}".replace('.', ',') + '%'
+                    dados_assembleias_grupo[f"Media Lance {self.sigla_assembleia_retrasada}"] = f"{float(media_percentuais):.2f}".replace('.', ',') + '%'
+                    dados_assembleias_grupo[f"Qtde Cotas LL {self.sigla_assembleia_retrasada}"] = qtde_cotas_lancesLivres
+                    dados_assembleias_grupo[f"Qtde Cotas LF {self.sigla_assembleia_retrasada}"] = qtde_cotas_lancesFixos
+                    dados_assembleias_grupo[f"Qtde Cotas Sorteio {self.sigla_assembleia_retrasada}"] = qtde_cotas_sorteios
+
                 
                 # Voltando para menu principal.
                 self.browser.find_element(By.XPATH, '//*[@id="ctl00_lnkHome"]').click()
@@ -303,12 +327,12 @@ class ConsorcioBB:
 
         except Exception as err:
             self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click() # Voltando para menu Portal Parceiros.
-            self.logger.error(f"[ConsorcioBB] Erro ao processar grupo {grupo}")
+            self.logger.error(f"[ConsorcioBB] Erro ao processar grupo {grupo} ->\n {err}")
             raise  # Relança a exceção para ser tratada no método principal
 
         return dados_assembleias_grupo
 
-    def CalculateMediaAssembly(self, grupo, df_dadosAssembleia):
+    def CalculateAssemblyInfo(self, grupo, df_dadosAssembleia):
         try:
             # MÉTODO PARA CALCULAR MÉDIA DE LANCE DA ASSEMBLEIA.
             # CALCULAR PARA CADA ASSEMBLEIA OU SEJA PARA CADA LINHA DA TABELA.
@@ -330,11 +354,10 @@ class ConsorcioBB:
                             break
                     else:
                         celulas = linhaAtual.find_elements(By.TAG_NAME, 'td')
-                        cota = celulas[0].text
-                        percentual_lance = celulas[2].text
                         dados_contemplacao = {
-                            "Cota": cota,
-                            "Percentual": percentual_lance,
+                            "Cota": celulas[0].text,
+                            "Percentual": celulas[2].text,
+                            "TipoContemplacao": celulas[1].text
                         }
                         list_cotasContempladas.append(dados_contemplacao)
                         
@@ -345,11 +368,11 @@ class ConsorcioBB:
 
             # Inicialize as variáveis para calcular a média e contar o número de valores válidos
             soma_percentuais = 0
-            contagem = 0
-            media_percentuais = None
-            pecentuais = []
+            media_percentuais = 0
+            qtde_cotas_sorteios = 0
+            qtde_cotas_lancesLivres = 0
+            qtde_cotas_lancesFixos = 0
 
-            # Obtenha os valores das colunas "MenorLance M5", "MenorLance M4" e "MenorLance M3" para o grupo correspondente
             dados_grupo = df_dadosAssembleia[df_dadosAssembleia['Grupo'] == grupo]
             if not dados_grupo.empty:
                 menor_lance_recente = dados_grupo[f'Menor Lance {self.sigla_assembleia_mais_recente}'].values[0]
@@ -358,32 +381,34 @@ class ConsorcioBB:
 
                 for CotaContemplada in list_cotasContempladas:
 
-                    percentual = CotaContemplada['Percentual']
-                    if percentual == '0,0000': # Desconsidera sorteio.
+                    # 1.0 # CONTABILIZA COTAS CONTEMPLADAS VIA SORTEIO
+                    if CotaContemplada['TipoContemplacao'] == "Sorteio":
+                        qtde_cotas_sorteios +=1
+                    # 1.1 # CONTABILIZA COTAS CONTEMPLADAS VIA LANCE FIXO 20%
+                    elif CotaContemplada['TipoContemplacao'] == "Lance" and CotaContemplada['Percentual'] == "20,0000" and ( menor_lance_passada == '20.00%' or None) and (menor_lance_retrasada == '20.00%' or None) and (menor_lance_recente == '20.00%' or None):
+                        qtde_cotas_lancesFixos +=1
                         continue
-                    elif percentual == "20,0000" and ( menor_lance_passada == '20.00%' or None) and (menor_lance_retrasada == '20.00%' or None) and (menor_lance_recente == '20.00%' or None):
-                        # lanceFixo20 = True
+                    # 1.2 # CONTABILIZA COTAS CONTEMPLADAS VIA LANCE FIXO 30%
+                    elif CotaContemplada['TipoContemplacao'] == "Lance" and CotaContemplada['Percentual'] == "30,0000" and (menor_lance_passada == '30.00%' or None) and (menor_lance_retrasada == '30.00%' or None) and (menor_lance_recente == '30.00%' or None):
+                        qtde_cotas_lancesFixos +=1
                         continue
-                    elif percentual == "30,0000" and (menor_lance_passada == '30.00%' or None) and (menor_lance_retrasada == '30.00%' or None) and (menor_lance_recente == '30.00%' or None):
-                        # lanceFixo30 = True
-                        continue
+                    # 1.3 # CONTABILIZA COTAS CONTEMPLADAS VIA LANCE LIVRE
                     else:
-                        pecentuais.append(percentual)
-                        soma_percentuais += float(percentual.replace(',', '.'))  # Converta para float, substituindo ',' por '.'
-                        contagem += 1
+                        soma_percentuais += float(CotaContemplada['Percentual'].replace(',', '.'))  # Converta para float, substituindo ',' por '.'
+                        qtde_cotas_lancesLivres +=1
 
             # Calcule a média
-            if contagem > 0:
-                media_percentuais = soma_percentuais / contagem
+            if qtde_cotas_lancesLivres > 0:
+                media_percentuais = soma_percentuais / qtde_cotas_lancesLivres
             else:
-                self.logger.info(f"[WARINING] Não há valores válidos para calcular a média. Grupo {grupo}°")
+                self.logger.info(f"[WARINING] Não há valores válidos para calcular a média dos lances livres do Grupo [{grupo}°]")
                 return media_percentuais == 0
 
             self.browser.find_element(By.XPATH,"//*[@id='ctl00_Conteudo_lnkFechaDiv']").click()
-            return media_percentuais
+            return media_percentuais, qtde_cotas_lancesFixos, qtde_cotas_lancesLivres, qtde_cotas_sorteios
 
         except Exception as err:
-            self.logger.error(f"error\n{err}")
+            self.logger.error(f"[ERROR] CalculateAssemblyInfo ->\n{err}")
             raise
 
     # --- FUNÇÕES PADRÕES -- #

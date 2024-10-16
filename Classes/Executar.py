@@ -18,11 +18,11 @@ try:
     global currentExecution_directory
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO. ------------------------------------------------------------------------------------------------------
-    dados_assembleia, media_assembleia = True, True 
-    categoria_processadas = ["IMP"] # ["IMP","IM240", "TC", "AI", "AU", "MO"] # ["EE"] 
-    data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") if dados_assembleia or media_assembleia else None
-    data_assembleia_passada = input("Digite a data da assembleia passada: ") if dados_assembleia or media_assembleia else None
-    data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ") if dados_assembleia or media_assembleia else None
+    dados_assembleia, info_assembleia = True, True 
+    categoria_processadas = ["EE"] # ["IMP","IM240", "TC", "AI", "AU", "MO", "EE"]
+    data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") if dados_assembleia or info_assembleia else None
+    data_assembleia_passada = input("Digite a data da assembleia passada: ") if dados_assembleia or info_assembleia else None
+    data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ") if dados_assembleia or info_assembleia else None
     login = input("Digite o seu login: ")
     senha = input("Digite a sua senha: ")
    
@@ -63,38 +63,36 @@ try:
         
         # 1.2 # EXTRAINDO DADOS REFENTE A CADA CATEGORIA DE GRUPOS.
         for sigla in categoria_processadas:
-            # 1.0 - DADOS GRUPOS ATIVOS.
-            # df_todosGruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas] # PARA PROCESSAR VARIAS SIGLAS DE UMA VEZ.
+            # # 1.0 - DADOS GRUPOS ATIVOS.
+            df_todosGruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas] # PARA PROCESSAR VARIAS SIGLAS DE UMA VEZ.
             df_todosGruposAtivos = consorcio.ReturnsDataFrameWithActiveGroups(sigla= str(sigla) )
-            lista_id_grupos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
+            lista_id_grupos =  [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0] # [1453, 1526, 1520]
 
             # 1.1 - DADOS ASSEMBLEIA.
-            if dados_assembleia or media_assembleia:
+            if dados_assembleia or info_assembleia:
                 df_dados_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_id_grupos, sigla=sigla)
                 df_dados_assembleia = pd.merge(df_todosGruposAtivos, df_dados_assembleia, on="Grupo", how="left")
-
             # 1.1 - DECIDE QUAL DADOS VAI CONTER NO EXCEL GERADO.
-            # 1° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA, MEDIA CONTEMPLACAO P/ GRUPO).
-            if media_assembleia:
-                # 1.1.1 - CÁLCULO MÉDIA CONTEMPLAÇÃO POR ASSEMBLEIA.
-                df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_dados_assembleia, lista_grupos=lista_id_grupos, sigla=sigla)
+            # 1° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA, INFORMACOES DE CONTEMPLACAO P/ GRUPO).
+            if info_assembleia:
+                # 1.1.1 - CÁLCULO INFORMACOES DE CONTEMPLAÇÃO POR ASSEMBLEIA.
+                df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsInfo(df_dadosAssembleia=df_dados_assembleia, lista_grupos=lista_id_grupos, sigla=sigla)
                 df_excelFinal = pd.merge(df_dados_assembleia, df_mediaContemplacao, on="Grupo", how="left")
-
+                
                 # 1.1.2 - ORGANIZA COLUNAS E SALVA EXCEL COM DADOS.
                 colunas = [
                     "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
                     "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
-                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
-                    f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
-                    f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
+                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}",  f"Media Lance {consorcio.sigla_assembleia_mais_recente}",   f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",   f"Qtde Cotas LL {consorcio.sigla_assembleia_mais_recente}", f"Qtde Cotas LF {consorcio.sigla_assembleia_mais_recente}",    f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_passada}",       f"Media Lance {consorcio.sigla_assembleia_passada}",        f"Menor Lance {consorcio.sigla_assembleia_passada}",        f"Qtde Cotas LL {consorcio.sigla_assembleia_passada}",      f"Qtde Cotas LF {consorcio.sigla_assembleia_passada}",         f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_passada}",
+                    f"Contemplados {consorcio.sigla_assembleia_retrasada}",     f"Media Lance {consorcio.sigla_assembleia_retrasada}",      f"Menor Lance {consorcio.sigla_assembleia_retrasada}",      f"Qtde Cotas LL {consorcio.sigla_assembleia_retrasada}",    f"Qtde Cotas LF {consorcio.sigla_assembleia_retrasada}",       f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_retrasada}"
                 ]
-
                 # 1.1.3 - SALVANDO ARQUIVO FINAL ORGANIZDO.
                 df_excelFinal[colunas].to_excel(f'{currentExecution_directory}\\TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx', index=False)
                 logger.info(f"[Executar] Arquivo 'TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx' criado com sucesso.")
                 consorcio.EndBrowser()        
             # 2° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS).
-            elif not dados_assembleia and not media_assembleia:
+            elif not dados_assembleia and not info_assembleia:
                 # 1.2 - SALVANDO ARQUIVO FINAL ORGANIZDO.
                 df_todosGruposAtivos.to_excel(f'{currentExecution_directory}\\TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx', index=False)
                 logger.info(f"[Executar] Arquivo 'TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx' criado com sucesso.")
@@ -107,7 +105,7 @@ try:
                 consorcio.EndBrowser() 
     except Exception as err:
         # 1.2.1 # TRATANDO EXECUÇÕES COM ERROS.
-        print(f"[Executar] FALHA AO EXECUTAR CLASSE ConsorcioBB.py.\n{err}")
+        print(f"[Executar] FALHA AO EXECUTAR CLASSE ConsorcioBB.py.-> \n{err}")
         consorcio.EndBrowser()
         raise
     # -- FIM EXECUÇÃO DA CLASSE ConsorcioBB.py -- #
@@ -120,7 +118,7 @@ try:
 except Exception as err:
     # 0.0 - MENSAGEM DE ERROR.
     if 'logger' in locals() and hasattr(logger, 'error'):
-        logger.error(f"\n[Executar] Falha ao executar programa.\nERROR-> {err}")
+        logger.error(f"[Executar] Falha ao executar programa.\nERROR-> {err}")
     
     # 0.1 - INSERINDO MENSAGEM NO LOG E ATUALIZANDO LOG COUNT.
     logger.warning(f"[Executar] Execução Finalizada [{datetime.now().strftime("%H:%M:%S")}] || Finalized Execution [{execution_code}]")
