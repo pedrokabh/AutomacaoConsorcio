@@ -32,19 +32,13 @@ class ConsorcioBB:
 
         self.logger = logger
         self.cwd = cwd
-
-        # 1.0 # VERIFICANDO VERSÃO SELENIUM
-        self.logger.warning("[ConsorcioBB] Versão Selenium Em Execução (V" + webdriver.__version__ + ").")
-        # 1.0 #
-        
-        # 1.1 # INICIANDO NAVEGADOR, FAZENDO LOGON E FECHANDO POUP-UP.
         self.login = login
         self.senha = senha
         self.chrome_driver_path = endereco_chrome_driver
         self.browser, self.wait = self.StartBrowser()
-        self.Login()
-        self.ClosePoupUp()
-        # 1.1 #
+
+        # 1.0 # VERIFICANDO VERSÃO SELENIUM
+        self.logger.warning("[ConsorcioBB] Versão Selenium Em Execução (V" + webdriver.__version__ + ").")
 
     # --- FUNÇÕES PARA GERAR GRUPOS ATIVOS --- #
     def ReturnsDataFrameWithActiveGroups(self, sigla):
@@ -94,9 +88,9 @@ class ConsorcioBB:
 
                         # Calculando novas colunas
                         taxas = f"{txAdm:.2f}% + {fReserv:.2f}%"
-                        calcTxAdmMensal = f"{(txAdm / prazo):.3f}% A.M\n{(txAdm / prazo * 12):.3f}% A.A"
-                        calcFRMensal = f"{(fReserv / prazo):.3f}% A.M\n{(fReserv / prazo * 12):.3f}% A.A"
-                        calcTotalMensal = f"{((txAdm + fReserv) / prazo):.3f}% A.M\n{((txAdm + fReserv) / prazo * 12):.3f}% A.A"
+                        calcTxAdmMensal = f"{(txAdm     / prazo):.3f}% A.M {(txAdm / prazo * 12):.3f}% A.A"
+                        calcFRMensal    = f"{(fReserv   / prazo):.3f}% A.M {(fReserv / prazo * 12):.3f}% A.A"
+                        calcTotalMensal = f"{((txAdm    + fReserv) / prazo):.3f}% A.M {((txAdm + fReserv) / prazo * 12):.3f}% A.A"
 
                         cartas_Grupo = {
                             "Modalidade": self.AcronymTranslator(sigla),
@@ -119,7 +113,7 @@ class ConsorcioBB:
             df = pd.DataFrame(grupos_ativos) # Transformando dicionário em data frame.
             del grupos_ativos
             df = df.loc[df.groupby(['Grupo', 'Prazo'])['CartasCredito'].idxmin()]
-            self.logger.info(f"[ConsorcioBB] Data frame Grupos Ativos [{sigla}] extraído com sucesso. ")
+            self.logger.info(f"\n[ConsorcioBB] Data frame Grupos Ativos [{sigla}] extraído com sucesso. ")
             return df
             #
         

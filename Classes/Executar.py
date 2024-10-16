@@ -1,4 +1,8 @@
 try:
+    # MELHORIAS PARA A PRÓXIMA VERSÃO #
+    # IDENTIFICAÇÃO DE QUANTAS CONTEMPLAÇÕES POR SORTEIO E QUANTAS POR LANCE (1449 / 1447)
+
+    # 0.0 # IMPORTAÇÕES NECESSÁRIAS PARA EXECUTAR O PROJETO.
     import sys
     import os
     import pandas as pd
@@ -6,39 +10,32 @@ try:
     from ConsorcioBB import ConsorcioBB
     from Logger import Logger
 
-    """
-        !!! ATENÇÃO !!! - Caso seja outra assembleia, atualizar as colunas do mês.
-    """
-    # 1.0 - VARIAVEIS GLOBAIS.
+    # 1.0 - VARIAVEIS GLOBAIS. ------------------------------------------------------------------------------------------------------
     executionCount_path = str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\Builds\\execution_count.txt')
     endereco_chrome_driver = str(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))+'\\chromedriver-win64\\chromedriver.exe')
-    execution_code = None
-    currentExecution_directory = None
+    global execution_code
+    global currentExecution_directory
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO. ------------------------------------------------------------------------------------------------------
-    dados_assembleia, media_assembleia = True, True
-    # 1.3 - VARIAVEIS PARA EXECUTAR CLASSE CONSORCIO BB. 
-    categoria_processadas = ["TC", "AI", "AU", "MO", "EE", "IM240", "IMP"]
+    dados_assembleia, media_assembleia = True, True 
+    categoria_processadas = ["IMP","IM240", "TC", "AI", "AU", "MO"] # ["EE"] ["IMP"]
+    data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") if dados_assembleia or media_assembleia else None
+    data_assembleia_passada = input("Digite a data da assembleia passada: ") if dados_assembleia or media_assembleia else None
+    data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ") if dados_assembleia or media_assembleia else None
     login = input("Digite o seu login: ")
     senha = input("Digite a sua senha: ")
-    data_assembleia_passada, data_assembleia_retrasada, data_assembleia_mais_recente = None, None, None
-    if dados_assembleia or media_assembleia: # VARIAVEIS PARA EXECUTAR DADOS E MEDIA DA ASSEMBLEIA.
-        data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") # "27/08/2024"
-        data_assembleia_passada = input("Digite a data da assembleia passada: ")           # "26/07/2024"
-        data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ")       # "25/09/2024"
-    # 1.3 -------------------------------------------------------------------------------------------------------------------------------
-
-    # 1.4 - LENDO LOG COUNT.TXT
+   
+    # 1.3 - LENDO LOG COUNT.TXT 
     with open(executionCount_path, 'r') as arquivo:
         conteudo = arquivo.read()
         execution_code = int(conteudo)
     
-    # 1.5 - CRIA O DIRETÓRIO PARA EXECUÇÃO DA BUILD ATUAL.
+    # 1.4 - CRIA O DIRETÓRIO PARA EXECUÇÃO DA BUILD ATUAL.
     currentExecution_directory=f'.\\Builds\\Build Number {execution_code}'
     os.makedirs(currentExecution_directory, exist_ok=True)  # Cria o diretório se não existir.
     open(os.path.join(currentExecution_directory, f'Build {execution_code}.log'), 'a').close()
 
-    # 1.6 - INICIALIZANDO CLASSE LOGGER.
+    # 1.5 - INICIALIZANDO CLASSE LOGGER.
     logger = Logger(execution_code, write_log_directory=f'{currentExecution_directory}\\Build {execution_code}.log')
     datetime_start_execution = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     logger.info(f"[Executar] Iniciando execução [{execution_code}] datetime [{datetime_start_execution}]")
@@ -46,62 +43,71 @@ try:
     # -- INICIO EXECUÇÃO DA CLASSE ConsorcioBB.py   -- #
     # 1.6 - EXECUÇÃO.
     try:
-        ## --- EXECUÇÃO PARTE --- ##
+
+        # 1.0 # INSTÂNCIANDO CLASSE CONSORCIO BB.
         consorcio = ConsorcioBB(
-            login=login,
-            senha=senha,
-            endereco_chrome_driver=endereco_chrome_driver,
-            logger=logger,
-            cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log',
-            data_assembleia_mais_recente=data_assembleia_mais_recente,
-            data_assembleia_passada=data_assembleia_passada,
-            data_assembleia_retrasada=data_assembleia_retrasada
+                login=login,
+                senha=senha,
+                endereco_chrome_driver=endereco_chrome_driver,
+                logger=logger,
+                cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log',
+                data_assembleia_mais_recente=data_assembleia_mais_recente,
+                data_assembleia_passada=data_assembleia_passada,
+                data_assembleia_retrasada=data_assembleia_retrasada
         )
+        
+        # 1.1 # INICIANDO NAVEGADOR, FAZENDO LOGON E FECHANDO POUP-UP.
+        consorcio.Login()
+        consorcio.ClosePoupUp()
+        
+        # 1.2 # EXTRAINDO DADOS REFENTE A CADA CATEGORIA DE GRUPOS.
+        for sigla in categoria_processadas:
+            # 1.0 - DADOS GRUPOS ATIVOS.
+            # df_todosGruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas] # PARA PROCESSAR VARIAS SIGLAS DE UMA VEZ.
+            df_todosGruposAtivos = consorcio.ReturnsDataFrameWithActiveGroups(sigla= str(sigla) )
+            lista_id_grupos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
 
-        # 1.0 - DADOS GRUPOS ATIVOS.
-        df_todosGruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas]
-        df_todosGruposAtivos = pd.concat(df_todosGruposAtivos, ignore_index=True)
-        lista_id_grupos = [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0]
+            # 1.1 - DADOS ASSEMBLEIA.
+            if dados_assembleia or media_assembleia:
+                df_dados_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_id_grupos)
+                df_dados_assembleia = pd.merge(df_todosGruposAtivos, df_dados_assembleia, on="Grupo", how="left")
 
-        # 1.1 - DADOS ASSEMBLEIA.
-        if dados_assembleia or media_assembleia:
-            df_dados_assembleia = consorcio.ReturnsDataFrameAssemblyData(lista_grupos=lista_id_grupos)
-            df_dados_assembleia = pd.merge(df_todosGruposAtivos, df_dados_assembleia, on="Grupo", how="left")
+            # 1.1 - DECIDE QUAL DADOS VAI CONTER NO EXCEL GERADO.
+            # 1° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA, MEDIA CONTEMPLACAO P/ GRUPO).
+            if media_assembleia:
+                # 1.1.1 - CÁLCULO MÉDIA CONTEMPLAÇÃO POR ASSEMBLEIA.
+                df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_dados_assembleia, lista_grupos=lista_id_grupos)
+                df_excelFinal = pd.merge(df_dados_assembleia, df_mediaContemplacao, on="Grupo", how="left")
 
-        # 1.1 - DECIDE QUAL DADOS VAI CONTER NO EXCEL GERADO.
-        # 1° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA, MEDIA CONTEMPLACAO P/ GRUPO).
-        if media_assembleia:
-            # 1.1.1 - CÁLCULO MÉDIA CONTEMPLAÇÃO POR ASSEMBLEIA.
-            df_mediaContemplacao = consorcio.ReturnsDataFrameGroupsMedia(df_dadosAssembleia=df_dados_assembleia, lista_grupos=lista_id_grupos)
-            df_excelFinal = pd.merge(df_dados_assembleia, df_mediaContemplacao, on="Grupo", how="left")
+                # 1.1.2 - ORGANIZA COLUNAS E SALVA EXCEL COM DADOS.
+                colunas = [
+                    "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
+                    "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
+                    f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
+                ]
 
-            # 1.1.2 - ORGANIZA COLUNAS E SALVA EXCEL COM DADOS.
-            colunas = [
-                "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
-                "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
-                f"Contemplados {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}", f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
-                f"Contemplados {consorcio.sigla_assembleia_passada}", f"Media Lance {consorcio.sigla_assembleia_passada}", f"Menor Lance {consorcio.sigla_assembleia_passada}",
-                f"Contemplados {consorcio.sigla_assembleia_retrasada}", f"Media Lance {consorcio.sigla_assembleia_retrasada}", f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
-            ]
-
-            # 1.1.3 - SALVANDO ARQUIVO FINAL ORGANIZDO.
-            df_excelFinal[colunas].to_excel(f'{currentExecution_directory}\\TodosGruposAtivos BUILD({execution_code}).xlsx', index=False)
-            logger.info(f"[Executar] Arquivo 'TodosGruposAtivos BUILD({execution_code}).xlsx' criado com sucesso.")
-            consorcio.EndBrowser()        
-        # 2° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS).
-        elif not dados_assembleia and not media_assembleia:
-            # 1.2 - SALVANDO ARQUIVO FINAL ORGANIZDO.
-            df_todosGruposAtivos.to_excel(f'{currentExecution_directory}\\TodosGruposAtivos BUILD({execution_code}).xlsx', index=False)
-            logger.info(f"[Executar] Arquivo 'TodosGruposAtivos BUILD({execution_code}).xlsx' criado com sucesso.")
-            consorcio.EndBrowser()
-        # 3° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA).
-        else:
-            # 1.2 - SALVANDO ARQUIVO FINAL ORGANIZDO.
-            df_dados_assembleia.to_excel(f'{currentExecution_directory}\\Dados Assembleia BUILD({execution_code}).xlsx', index=False)
-            logger.info(f"[Executar] Arquivo 'Dados Assembleia BUILD({execution_code}).xlsx' criado com sucesso.")
-            consorcio.EndBrowser()
+                # 1.1.3 - SALVANDO ARQUIVO FINAL ORGANIZDO.
+                df_excelFinal[colunas].to_excel(f'{currentExecution_directory}\\TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx', index=False)
+                logger.info(f"[Executar] Arquivo 'TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx' criado com sucesso.")
+                consorcio.EndBrowser()        
+            # 2° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS).
+            elif not dados_assembleia and not media_assembleia:
+                # 1.2 - SALVANDO ARQUIVO FINAL ORGANIZDO.
+                df_todosGruposAtivos.to_excel(f'{currentExecution_directory}\\TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx', index=False)
+                logger.info(f"[Executar] Arquivo 'TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx' criado com sucesso.")
+                consorcio.EndBrowser()
+            # 3° CONDIÇÃO - GERA EXCEL COM DADOS -> (GRUPOS ATIVOS, DADOS DA ASSEMBLEIA).
+            else:
+                # 1.2 - SALVANDO ARQUIVO FINAL ORGANIZDO.
+                df_dados_assembleia.to_excel(f'{currentExecution_directory}\\Dados Assembleia [{sigla}] BUILD({execution_code}).xlsx', index=False)
+                logger.info(f"[Executar] Arquivo 'Dados Assembleia [{sigla}] BUILD({execution_code}).xlsx' criado com sucesso.")
+                consorcio.EndBrowser() 
     except Exception as err:
+        # 1.2.1 # TRATANDO EXECUÇÕES COM ERROS.
         print(f"[Executar] FALHA AO EXECUTAR CLASSE ConsorcioBB.py.\n{err}")
+        consorcio.EndBrowser()
         raise
     # -- FIM EXECUÇÃO DA CLASSE ConsorcioBB.py -- #
 
