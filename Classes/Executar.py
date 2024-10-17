@@ -19,7 +19,7 @@ try:
 
     # 1.2 - VARIAVEIS DE EXECUÇÃO. ------------------------------------------------------------------------------------------------------
     dados_assembleia, info_assembleia = True, True 
-    categoria_processadas = ["EE"] # ["IMP","IM240", "TC", "AI", "AU", "MO", "EE"]
+    categoria_processadas = ["AU", "MO"] # TODAS AS CATEGORIAS POSSIVEIS -> "IMP","IM240", "TC", "AI", "AU", "MO", "EE"
     data_assembleia_mais_recente = input("Digite a data da assembleia mais recente: ") if dados_assembleia or info_assembleia else None
     data_assembleia_passada = input("Digite a data da assembleia passada: ") if dados_assembleia or info_assembleia else None
     data_assembleia_retrasada = input("Digite a data da assembleia retrasada: ") if dados_assembleia or info_assembleia else None
@@ -44,27 +44,25 @@ try:
     # -- INICIO EXECUÇÃO DA CLASSE ConsorcioBB.py   -- #
     # 1.6 - EXECUÇÃO.
     try:
-
-        # 1.0 # INSTÂNCIANDO CLASSE CONSORCIO BB.
-        consorcio = ConsorcioBB(
-                login=login,
-                senha=senha,
-                endereco_chrome_driver=endereco_chrome_driver,
-                logger=logger,
-                cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log',
-                data_assembleia_mais_recente=data_assembleia_mais_recente,
-                data_assembleia_passada=data_assembleia_passada,
-                data_assembleia_retrasada=data_assembleia_retrasada
-        )
-        
-        # 1.1 # INICIANDO NAVEGADOR, FAZENDO LOGON E FECHANDO POUP-UP.
-        consorcio.Login()
-        consorcio.ClosePoupUp()
-        
         # 1.2 # EXTRAINDO DADOS REFENTE A CADA CATEGORIA DE GRUPOS.
         for sigla in categoria_processadas:
-            # # 1.0 - DADOS GRUPOS ATIVOS.
-            df_todosGruposAtivos = [consorcio.ReturnsDataFrameWithActiveGroups(sigla=categoria) for categoria in categoria_processadas] # PARA PROCESSAR VARIAS SIGLAS DE UMA VEZ.
+            # 1.0 # INSTÂNCIANDO CLASSE CONSORCIO BB.
+            consorcio = ConsorcioBB(
+                    login=login,
+                    senha=senha,
+                    endereco_chrome_driver=endereco_chrome_driver,
+                    logger=logger,
+                    cwd=f'.\\Builds\\Build Number {execution_code}\\Build {execution_code}.log',
+                    data_assembleia_mais_recente=data_assembleia_mais_recente,
+                    data_assembleia_passada=data_assembleia_passada,
+                    data_assembleia_retrasada=data_assembleia_retrasada
+            )
+            
+            # 1.1 # INICIANDO NAVEGADOR, FAZENDO LOGON E FECHANDO POUP-UP.
+            consorcio.Login()
+            consorcio.ClosePoupUp()
+
+            # 1.0 - DADOS GRUPOS ATIVOS.
             df_todosGruposAtivos = consorcio.ReturnsDataFrameWithActiveGroups(sigla= str(sigla) )
             lista_id_grupos =  [codigo for codigo in df_todosGruposAtivos['Grupo'].tolist() if codigo != 0] # [1453, 1526, 1520]
 
@@ -83,9 +81,9 @@ try:
                 colunas = [
                     "Modalidade", "Grupo", "Prazo", "Vagas", "Taxas", "Calculo TxAdm", "Calculo FR",
                     "Calculo Total", "CartasCredito", "Liquidez", f"N° Assembleia {consorcio.sigla_assembleia_mais_recente}",
-                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}",  f"Media Lance {consorcio.sigla_assembleia_mais_recente}",   f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",   f"Qtde Cotas LL {consorcio.sigla_assembleia_mais_recente}", f"Qtde Cotas LF {consorcio.sigla_assembleia_mais_recente}",    f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_mais_recente}",
-                    f"Contemplados {consorcio.sigla_assembleia_passada}",       f"Media Lance {consorcio.sigla_assembleia_passada}",        f"Menor Lance {consorcio.sigla_assembleia_passada}",        f"Qtde Cotas LL {consorcio.sigla_assembleia_passada}",      f"Qtde Cotas LF {consorcio.sigla_assembleia_passada}",         f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_passada}",
-                    f"Contemplados {consorcio.sigla_assembleia_retrasada}",     f"Media Lance {consorcio.sigla_assembleia_retrasada}",      f"Menor Lance {consorcio.sigla_assembleia_retrasada}",      f"Qtde Cotas LL {consorcio.sigla_assembleia_retrasada}",    f"Qtde Cotas LF {consorcio.sigla_assembleia_retrasada}",       f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_retrasada}"
+                    f"Contemplados {consorcio.sigla_assembleia_mais_recente}",  f"Qtde Cotas LL {consorcio.sigla_assembleia_mais_recente}", f"Qtde Cotas LF {consorcio.sigla_assembleia_mais_recente}",    f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_mais_recente}", f"Media Lance {consorcio.sigla_assembleia_mais_recente}",   f"Menor Lance {consorcio.sigla_assembleia_mais_recente}",
+                    f"Contemplados {consorcio.sigla_assembleia_passada}",       f"Qtde Cotas LL {consorcio.sigla_assembleia_passada}",      f"Qtde Cotas LF {consorcio.sigla_assembleia_passada}"     ,    f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_passada}"     , f"Media Lance {consorcio.sigla_assembleia_passada}"     ,   f"Menor Lance {consorcio.sigla_assembleia_passada}",
+                    f"Contemplados {consorcio.sigla_assembleia_retrasada}",     f"Qtde Cotas LL {consorcio.sigla_assembleia_retrasada}",    f"Qtde Cotas LF {consorcio.sigla_assembleia_retrasada}"   ,    f"Qtde Cotas Sorteio {consorcio.sigla_assembleia_retrasada}"   , f"Media Lance {consorcio.sigla_assembleia_retrasada}"   ,   f"Menor Lance {consorcio.sigla_assembleia_retrasada}"
                 ]
                 # 1.1.3 - SALVANDO ARQUIVO FINAL ORGANIZDO.
                 df_excelFinal[colunas].to_excel(f'{currentExecution_directory}\\TodosGruposAtivos [{sigla}] BUILD({execution_code}).xlsx', index=False)
