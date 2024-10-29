@@ -327,7 +327,7 @@ class ConsorcioBB:
 
         except Exception as err:
             self.browser.find_element(By.XPATH,'//*[@id="ctl00_lnkHome"]').click() # Voltando para menu Portal Parceiros.
-            self.logger.error(f"[ConsorcioBB] Erro ao processar grupo {grupo} ->\n {err}")
+            self.logger.error(f"[ConsorcioBB] Erro ao processar grupo {grupo}")
             raise  # Relança a exceção para ser tratada no método principal
 
         return dados_assembleias_grupo
